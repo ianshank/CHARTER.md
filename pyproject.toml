@@ -1,0 +1,123 @@
+[project]
+name = "charter-kit-workspace"
+version = "0.0.0"
+description = "Workspace root for charter-kit. Not published."
+requires-python = ">=3.11"
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+charter-core = { workspace = true }
+charter-cli = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "hypothesis>=6.120",
+    "mypy>=1.13",
+    "ruff>=0.8",
+    "import-linter>=2.1",
+    "deptry>=0.21",
+    "vulture>=2.13",
+    "charter-core",
+    "charter-cli",
+]
+
+# ---------------------------------------------------------------------------
+# ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["packages/core/src", "packages/cli/src", "packages/mcp/src"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",      # pycodestyle
+    "F",           # pyflakes
+    "I",           # isort
+    "N",           # pep8-naming
+    "UP",          # pyupgrade
+    "B",           # bugbear
+    "A",           # builtins shadowing
+    "C4",          # comprehensions
+    "DTZ",         # flake8-datetimez -- bans naive datetime construction
+    "T20",         # no print()
+    "SIM",         # simplify
+    "TID",         # tidy imports (banned-api below)
+    "PTH",         # prefer pathlib over os.path
+    "RUF",
+    "S",           # bandit
+    "D",           # pydocstyle
+]
+ignore = [
+    "D105",  # magic method docstrings
+    "D107",  # __init__ docstring (documented on the class)
+    "D203", "D213",  # mutually exclusive with D211/D212
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "D100", "D101", "D102", "D103", "D104", "PTH"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+# charter-core purity: enforced structurally by import-linter, and at the
+# call level by the AST scan in tests/architecture/test_core_purity.py.
+"subprocess".msg = "charter-core is pure; run processes from the CLI adapters."
+
+# ---------------------------------------------------------------------------
+# mypy
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+warn_unused_configs = true
+enable_error_code = ["redundant-expr", "truthy-bool", "ignore-without-code"]
+plugins = ["pydantic.mypy"]
+files = ["packages/core/src", "packages/cli/src"]
+
+[[tool.mypy.overrides]]
+module = ["tests.*", "conftest"]
+disallow_untyped_defs = false
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["packages/core/tests", "packages/cli/tests", "packages/mcp/tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "req(id): the SPEC requirement id this test provides coverage for",
+    "slow: excluded from the default CI test job",
+]
+filterwarnings = ["error"]
+
+# ---------------------------------------------------------------------------
+# coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+branch = true
+source = ["charter_core", "charter_cli", "charter_mcp"]
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@overload",
+    "class .*\\(Protocol\\):",
+]
+show_missing = true
+
+# ---------------------------------------------------------------------------
+# vulture
+# ---------------------------------------------------------------------------
+[tool.vulture]
+min_confidence = 80
+paths = ["packages"]
+exclude = ["*/tests/*"]

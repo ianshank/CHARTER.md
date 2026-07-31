@@ -1,0 +1,534 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://charter-kit.dev/schema/0.1/evaluation-report.schema.json",
+  "$defs": {
+    "BaselineFacts": {
+      "additionalProperties": false,
+      "description": "Ratchet baselines in force at evaluation time.",
+      "properties": {
+        "cumulative": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "per_non_goal": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "CountFacts": {
+      "additionalProperties": false,
+      "description": "The raw counts every trigger decision was made from.",
+      "properties": {
+        "cumulative_denominator": {
+          "default": 0,
+          "type": "integer"
+        },
+        "cumulative_numerator": {
+          "default": 0,
+          "type": "integer"
+        },
+        "density": {
+          "default": 0,
+          "type": "integer"
+        },
+        "per_non_goal": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "DiagnosticOut": {
+      "additionalProperties": false,
+      "description": "One finding, as serialised into the report.",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "context": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LocationOut"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "message": {
+          "type": "string"
+        },
+        "remediation": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "error",
+            "warning",
+            "info"
+          ],
+          "type": "string"
+        },
+        "spec_ref": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message",
+        "spec_ref",
+        "remediation"
+      ],
+      "type": "object"
+    },
+    "EventFact": {
+      "additionalProperties": false,
+      "description": "One ledger event as the engine saw it.",
+      "properties": {
+        "commit_sha": {
+          "type": "string"
+        },
+        "committed_at": {
+          "type": "string"
+        },
+        "event_key": {
+          "type": "string"
+        },
+        "event_type": {
+          "type": "string"
+        },
+        "historical": {
+          "default": false,
+          "type": "boolean"
+        },
+        "order_index": {
+          "type": "integer"
+        },
+        "path": {
+          "type": "string"
+        },
+        "provisional": {
+          "default": false,
+          "type": "boolean"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "event_key",
+        "path",
+        "event_type",
+        "commit_sha",
+        "committed_at",
+        "order_index"
+      ],
+      "type": "object"
+    },
+    "FactSet": {
+      "additionalProperties": false,
+      "description": "Everything the engine read, before it decided anything.",
+      "properties": {
+        "baselines": {
+          "$ref": "#/$defs/BaselineFacts"
+        },
+        "counts": {
+          "$ref": "#/$defs/CountFacts"
+        },
+        "events": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/EventFact"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "InputFacts": {
+      "additionalProperties": false,
+      "description": "What the engine was pointed at.",
+      "properties": {
+        "base_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "charter_digest": {
+          "type": "string"
+        },
+        "default_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "event_count": {
+          "type": "integer"
+        },
+        "head_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "provisional": {
+          "default": false,
+          "type": "boolean"
+        },
+        "shallow": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "charter_digest",
+        "event_count"
+      ],
+      "type": "object"
+    },
+    "LocationOut": {
+      "additionalProperties": false,
+      "description": "Where a diagnostic applies.",
+      "properties": {
+        "entity_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "event_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "PathStateOut": {
+      "additionalProperties": false,
+      "description": "Computed amendment-path state.",
+      "properties": {
+        "causes": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": "object"
+        },
+        "global_state": {
+          "enum": [
+            "open",
+            "closed",
+            "review_required"
+          ],
+          "type": "string"
+        },
+        "per_non_goal": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "global_state"
+      ],
+      "type": "object"
+    },
+    "SettingProvenanceOut": {
+      "additionalProperties": false,
+      "description": "A resolved threshold and the layer that supplied it.",
+      "properties": {
+        "detail": {
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "config",
+            "profile",
+            "schema_default"
+          ],
+          "type": "string"
+        },
+        "value": {}
+      },
+      "required": [
+        "value",
+        "source",
+        "detail"
+      ],
+      "type": "object"
+    },
+    "TriggerReport": {
+      "additionalProperties": false,
+      "description": "One trigger's evaluation, with enough detail to explain itself.",
+      "properties": {
+        "baseline": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "contributing_events": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "fired": {
+          "type": "boolean"
+        },
+        "kind": {
+          "enum": [
+            "velocity",
+            "level"
+          ],
+          "type": "string"
+        },
+        "margin": {
+          "type": "string"
+        },
+        "observed": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "threshold": {
+          "type": "string"
+        },
+        "trigger_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "trigger_id",
+        "kind",
+        "fired",
+        "scope",
+        "observed",
+        "threshold",
+        "margin"
+      ],
+      "type": "object"
+    },
+    "VerdictOut": {
+      "additionalProperties": false,
+      "description": "The guardian contract's answer.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "PASS",
+            "VIOLATION",
+            "REVIEW_REQUIRED"
+          ],
+          "type": "string"
+        },
+        "non_goals": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "reasons": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "rendered": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "rendered"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The complete result of one evaluation.",
+  "properties": {
+    "conformance_ceiling": {
+      "description": "Highest level this repository may claim. Draft status caps at CL-2.",
+      "maximum": 4,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "core_version": {
+      "type": "string"
+    },
+    "diagnostics": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/DiagnosticOut"
+      },
+      "type": "array"
+    },
+    "evaluated_at": {
+      "type": "string"
+    },
+    "exit_code": {
+      "type": "integer"
+    },
+    "facts": {
+      "$ref": "#/$defs/FactSet"
+    },
+    "inputs": {
+      "$ref": "#/$defs/InputFacts"
+    },
+    "path_state": {
+      "$ref": "#/$defs/PathStateOut"
+    },
+    "profile": {
+      "type": "string"
+    },
+    "report_version": {
+      "default": "1",
+      "type": "string"
+    },
+    "result": {
+      "enum": [
+        "pass",
+        "fail"
+      ],
+      "type": "string"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "settings": {
+      "additionalProperties": {
+        "$ref": "#/$defs/SettingProvenanceOut"
+      },
+      "type": "object"
+    },
+    "spec_version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "ratified"
+      ],
+      "type": "string"
+    },
+    "triggers": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/TriggerReport"
+      },
+      "type": "array"
+    },
+    "verdict": {
+      "$ref": "#/$defs/VerdictOut"
+    }
+  },
+  "required": [
+    "run_id",
+    "evaluated_at",
+    "core_version",
+    "spec_version",
+    "schema_version",
+    "profile",
+    "status",
+    "conformance_ceiling",
+    "inputs",
+    "path_state",
+    "verdict",
+    "result",
+    "exit_code"
+  ],
+  "type": "object"
+}

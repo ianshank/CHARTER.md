@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://charter-kit.dev/schema/0.1/charter.schema.json",
+  "$defs": {
+    "ApprovalPolicyConfig": {
+      "additionalProperties": false,
+      "description": "Per-charter override of the profile's approval policy.",
+      "properties": {
+        "distinct_from_author": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": true
+        },
+        "min_approvals": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 1
+        },
+        "require_code_owner": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": true
+        },
+        "self_ratification_allowed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": false
+        }
+      },
+      "type": "object"
+    },
+    "ConfigBlock": {
+      "additionalProperties": false,
+      "description": "Every tunable in the system, in one place.\n\nAll values are optional: an omitted key falls through to the profile preset\nand then to the schema default, and the resolved value records which layer\nsupplied it.",
+      "properties": {
+        "approval_policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApprovalPolicyConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "cumulative_ratio": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 0.5
+        },
+        "default_carveout_budget": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 2
+        },
+        "density_threshold": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 3
+        },
+        "density_window_days": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": 90
+        },
+        "ledger_pr_isolation": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": true
+        },
+        "require_review_artifact": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": true
+        },
+        "window_boundary": {
+          "anyOf": [
+            {
+              "enum": [
+                "inclusive",
+                "exclusive"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "inclusive"
+        }
+      },
+      "type": "object"
+    },
+    "NonGoal": {
+      "additionalProperties": false,
+      "description": "A declared boundary: something the system deliberately does not do.",
+      "properties": {
+        "budget": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Concurrent carve-outs permitted. Falls back to config, profile, schema."
+        },
+        "id": {
+          "pattern": "^NG-[1-9][0-9]*$",
+          "type": "string"
+        },
+        "rationale": {
+          "description": "Why this boundary exists.",
+          "minLength": 8,
+          "type": "string"
+        },
+        "status": {
+          "default": "active",
+          "enum": [
+            "active",
+            "retired"
+          ],
+          "type": "string"
+        },
+        "text": {
+          "description": "The boundary, stated as a negative capability.",
+          "minLength": 8,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "rationale"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The parsed charter.yaml.",
+  "properties": {
+    "adopted_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Genesis marker. Events at or before this instant are historical: exempt from velocity triggers, still counted by level triggers. Without it, back-filling existing carve-outs at adoption trips density on day one."
+    },
+    "charter_version": {
+      "description": "Semver of this charter's own content.",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "type": "string"
+    },
+    "config": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ConfigBlock"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "non_goals": {
+      "items": {
+        "$ref": "#/$defs/NonGoal"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "profile": {
+      "default": "standard",
+      "enum": [
+        "lite",
+        "standard",
+        "enterprise"
+      ],
+      "type": "string"
+    },
+    "spec_version": {
+      "description": "The charter-kit SPEC version this targets.",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "type": "string"
+    },
+    "status": {
+      "description": "In draft, trigger-based blocking is disabled but every structural check still applies, and conformance is capped at CL-2.",
+      "enum": [
+        "draft",
+        "ratified"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [
+    "spec_version",
+    "charter_version",
+    "status",
+    "non_goals"
+  ],
+  "type": "object"
+}

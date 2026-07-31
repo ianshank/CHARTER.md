@@ -1,0 +1,34 @@
+[importlinter]
+root_packages =
+    charter_core
+    charter_cli
+include_external_packages = True
+
+[importlinter:contract:core-purity]
+name = charter-core performs no I/O, holds no clock, and never imports its consumers
+type = forbidden
+source_modules =
+    charter_core
+forbidden_modules =
+    os
+    pathlib
+    subprocess
+    socket
+    shutil
+    tempfile
+    urllib
+    httpx
+    requests
+    structlog
+    typer
+    rich
+    click
+    jsonschema
+    charter_cli
+
+[importlinter:contract:layers]
+name = CLI depends on core, never the reverse
+type = layers
+layers =
+    charter_cli
+    charter_core

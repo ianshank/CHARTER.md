@@ -371,33 +371,51 @@ plus banned-api scoped to core.
 # ports.py — the reuse seam. CLI, MCP, conformance, and tests each construct these differently.
 @dataclass(frozen=True, slots=True)
 class Provenance:
-    commit_sha: str; committed_at: datetime      # tz-aware UTC
-    first_parent: bool; provisional: bool
+    commit_sha: str
+    committed_at: datetime  # tz-aware UTC
+    first_parent: bool
+    provisional: bool
+
 
 class ProvenanceProvider(Protocol):
-    def provenance_for(self, paths: Sequence[LedgerPath]) -> Mapping[LedgerPath, Provenance | None]: ...
+    def provenance_for(
+        self, paths: Sequence[LedgerPath]
+    ) -> Mapping[LedgerPath, Provenance | None]: ...
     def is_shallow(self) -> bool: ...
     def default_ref(self) -> str: ...
 
+
 class LedgerSource(Protocol):
     def documents(self) -> Iterator[tuple[LedgerPath, Mapping[str, Any]]]: ...
+
+
 class DiffSource(Protocol):
-    def changed_paths(self, base: str, head: str) -> Sequence[PathChange]: ...   # A/M/D/R
-class ApprovalSource(Protocol):          # F6 — interface in M0, live API call in M1
+    def changed_paths(self, base: str, head: str) -> Sequence[PathChange]: ...  # A/M/D/R
+
+
+class ApprovalSource(Protocol):  # F6 — interface in M0, live API call in M1
     def approvals_for(self, pr_number: int) -> ApprovalFacts: ...
+
 
 # settings.py — the "no hard-coded values" guarantee, made auditable
 class SettingSource(StrEnum):
-    EXPLICIT_CONFIG = "config"; PROFILE = "profile"; SCHEMA_DEFAULT = "schema_default"
+    EXPLICIT_CONFIG = "config"
+    PROFILE = "profile"
+    SCHEMA_DEFAULT = "schema_default"
+
 
 @dataclass(frozen=True, slots=True)
 class ResolvedSettings:
-    density_window_days: int; density_threshold: int
-    cumulative_ratio: Fraction; default_carveout_budget: int
+    density_window_days: int
+    density_threshold: int
+    cumulative_ratio: Fraction
+    default_carveout_budget: int
     window_boundary: Literal["inclusive", "exclusive"]
-    require_review_artifact: bool; ledger_pr_isolation: bool
+    require_review_artifact: bool
+    ledger_pr_isolation: bool
     approval_policy: ApprovalPolicy
-    provenance: Mapping[str, SettingProvenance]      # per-key: value, source, detail
+    provenance: Mapping[str, SettingProvenance]  # per-key: value, source, detail
+
 
 def resolve_settings(*, config: ConfigBlock | None, profile: ProfileName) -> ResolvedSettings: ...
 ```
@@ -409,53 +427,86 @@ auditable rather than merely asserted.
 ```python
 # models/events.py — no stored provenance anywhere
 class EventKind(StrEnum):
-    CARVEOUT_RATIFIED="carveout.ratified"; CARVEOUT_RETIRED="carveout.retired"
-    CARVEOUT_EXPIRED="carveout.expired";   REVIEW_OPENED="review.opened"
-    REVIEW_CLOSED="review.closed";         CORRECTION="correction"
+    CARVEOUT_RATIFIED = "carveout.ratified"
+    CARVEOUT_RETIRED = "carveout.retired"
+    CARVEOUT_EXPIRED = "carveout.expired"
+    REVIEW_OPENED = "review.opened"
+    REVIEW_CLOSED = "review.closed"
+    CORRECTION = "correction"
 
-class Constraints(BaseModel):        # F5 — keyed object, each field min_length 24
-    bounding: ConstraintText; mechanism: ConstraintText
-    safety: ConstraintText;   sequencing: ConstraintText
 
-LedgerEvent = Annotated[CarveOutRatified | CarveOutRetired | CarveOutExpired
-                        | ReviewOpened | ReviewClosed | Correction,
-                        Field(discriminator="event_type")]
+class Constraints(BaseModel):  # F5 — keyed object, each field min_length 24
+    bounding: ConstraintText
+    mechanism: ConstraintText
+    safety: ConstraintText
+    sequencing: ConstraintText
+
+
+LedgerEvent = Annotated[
+    CarveOutRatified | CarveOutRetired | CarveOutExpired | ReviewOpened | ReviewClosed | Correction,
+    Field(discriminator="event_type"),
+]
+
 
 @dataclass(frozen=True, slots=True)
 class ResolvedEvent:
-    path: LedgerPath; event: LedgerEvent; provenance: Provenance
+    path: LedgerPath
+    event: LedgerEvent
+    provenance: Provenance
+
     @property
-    def event_key(self) -> str: ...   # "CO-1.ratified" — MUST equal the file stem
+    def event_key(self) -> str: ...  # "CO-1.ratified" — MUST equal the file stem
+
 
 # ordering / window / projection
-def order_key(e: ResolvedEvent) -> tuple[datetime, str, str]: ...    # R2-2 total order
-def in_window(ts, *, at, days, boundary) -> bool: ...                # A3
-def project(events: Sequence[ResolvedEvent], *, at: datetime) -> LedgerState: ...  # derives
-                                    # statuses + watermarks; nothing stored
+def order_key(e: ResolvedEvent) -> tuple[datetime, str, str]: ...  # R2-2 total order
+def in_window(ts, *, at, days, boundary) -> bool: ...  # A3
+def project(events: Sequence[ResolvedEvent], *, at: datetime) -> LedgerState:
+    ...  # derives
+    # statuses + watermarks; nothing stored
+
 
 # triggers — registry with an extension seam, not an if/elif chain
 class Trigger(Protocol):
     id: ClassVar[str]
+
     def evaluate(self, ctx: TriggerContext) -> Sequence[TriggerResult]: ...
+
+
 TRIGGERS: Final[Registry[Trigger]]
+
+
 def register(trigger_id: str) -> Callable[[type[Trigger]], type[Trigger]]: ...
+
 
 @dataclass(frozen=True, slots=True)
 class TriggerResult:
-    trigger_id: str; fired: bool; scope: TriggerScope
-    observed: int | Fraction; threshold: int | Fraction; margin: int | Fraction
-    contributing_events: tuple[str, ...]      # causal trace — makes `explain` nearly free
+    trigger_id: str
+    fired: bool
+    scope: TriggerScope
+    observed: int | Fraction
+    threshold: int | Fraction
+    margin: int | Fraction
+    contributing_events: tuple[str, ...]  # causal trace — makes `explain` nearly free
     diagnostics: tuple[Diagnostic, ...]
+
 
 # verdict.py — THE agent contract (see §F: agents narrate this, they never infer it)
 def compute_verdict(path_state: PathState, touched: Sequence[NonGoalId]) -> Verdict: ...
 
+
 # evaluate.py — the single engine entry point
-def evaluate(*, charter: Charter, events: Sequence[ResolvedEvent], at: datetime,
-             settings: ResolvedSettings, run_id: str,
-             approvals: ApprovalFacts | None = None,
-             diff: Sequence[PathChange] | None = None,
-             touched_non_goals: Sequence[NonGoalId] = ()) -> EvaluationReport: ...
+def evaluate(
+    *,
+    charter: Charter,
+    events: Sequence[ResolvedEvent],
+    at: datetime,
+    settings: ResolvedSettings,
+    run_id: str,
+    approvals: ApprovalFacts | None = None,
+    diff: Sequence[PathChange] | None = None,
+    touched_non_goals: Sequence[NonGoalId] = (),
+) -> EvaluationReport: ...
 ```
 
 `evaluate` is total — it never raises for policy problems, it returns diagnostics; it raises only on
