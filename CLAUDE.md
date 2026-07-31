@@ -2,9 +2,17 @@
 
 Context for a session picking up work here cold. See `README.md` for what
 the project is, `NEXTSTEPS.md` for what's next and what's blocked,
-`docs/architecture.md` for how the pieces fit together, and
+`docs/architecture.md` for how the pieces fit together,
 `docs/implementation-plan-m0.md` for the full historical design record
-(rounds 1-3 peer review, the A1-A14 normative decisions).
+(rounds 1-3 peer review, the A1-A14 normative decisions), and
+`CONTRIBUTING.md`/`BRANCHING.md` for the branching model and commit
+convention.
+
+**Target `dev`, not `main`, when opening a PR from a session branch.**
+`main`/`qa`/`dev` exist under a GitFlow-lite model (`claude/<slug>` →
+`dev` → `qa` → `main`) — see `CONTRIBUTING.md` for the full flow. GitHub's
+"Create pull request" UI defaults the base to the repository's *default*
+branch, which will not automatically be `dev`; check it explicitly.
 
 ## The one rule that overrides style preferences
 

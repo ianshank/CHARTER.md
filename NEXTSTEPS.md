@@ -14,6 +14,9 @@ branch would produce answers the real thing wouldn't, and the correction
 would either be wasted work or (worse) a false sense that S4 is done. This
 is a repository setting, not something fixable from inside a session:
 Settings → General → Default branch, on `github.com/ianshank/CHARTER.md`.
+**This is unaffected by the branching model below** — the default branch
+must still become `main`, never `dev`, since `main` is the release branch
+in that model.
 
 Once that's flipped, S4 is the very next thing:
 
@@ -35,6 +38,16 @@ Once that's flipped, S4 is the very next thing:
   core's observability surface. This only belongs in `charter_cli`, and
   can't be meaningfully built before the commands it would instrument exist.
 
+## Branching model
+
+`main`/`qa`/`dev` branches now exist, GitFlow-lite (`feature|fix|claude/*`
+→ `dev` → `qa` → `main`). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the
+contributor-facing flow and commit convention, and
+[`BRANCHING.md`](BRANCHING.md) for the exact required-checks and
+branch-protection settings — which still need to be applied by hand in
+GitHub's Settings UI, since no available tool can configure them
+automatically.
+
 ## Unblocked, not yet done
 
 **S5 — self-enforcement.** The gate action (composite + reusable workflow),
@@ -44,10 +57,10 @@ repository now exist (see below) and validate against the real `Charter`
 model, but nothing can *run* `charter check` against them until S4 lands.
 
 **S6 — remaining defects and artifacts.** Most of what was tracked here has
-been cleared in this pass (see `CHANGELOG.md`). What's left:
-- `CODEOWNERS`, `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`,
-  `GOVERNANCE.md` — process documents that make more sense once there's a
-  CLI for a contributor to actually run.
+been cleared in this pass (see `CHANGELOG.md`) — including `CODEOWNERS`,
+`CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, and `GOVERNANCE.md`,
+which landed alongside the branching model above rather than waiting for a
+CLI to exist. What's left:
 - A `Dockerfile` + `.dockerignore` — deliberately not built yet. The console
   script (`charter`) points at `charter_cli.main:app`, which doesn't exist;
   a container packaging an unrunnable CLI would be actively misleading
