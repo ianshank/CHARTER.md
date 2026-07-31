@@ -139,6 +139,9 @@ $ uv run pytest -q        # just the test suite
 checks (minus coverage, which needs the full suite) into `git commit` via
 `uv run pre-commit install`.
 
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the branching model, commit
+convention, and PR checklist.
+
 ## What charter-kit does not do
 
 - It does not replace human judgment about whether a boundary is worth
