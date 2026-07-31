@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least privilege by default. Jobs that need more must say so explicitly.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Derandomised property tests: a flaky governance gate is worse than a slow one.
+  HYPOTHESIS_PROFILE: ci
+
+jobs:
+  lint:
+    name: Lint, types, and architecture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: ruff
+        run: uv run ruff check .
+      - name: ruff format
+        run: uv run ruff format --check .
+      - name: mypy --strict
+        run: uv run mypy
+      - name: import contracts
+        # Mechanically enforces that charter-core performs no I/O and never
+        # imports its consumers. This is the purity guarantee, not a style rule.
+        run: uv run lint-imports
+
+  test:
+    name: Tests (py${{ matrix.python }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.11", "3.12", "3.13"]
+        include:
+          # Windows is not optional: it is what proves the CRLF handling in the
+          # generated-block protocol and the POSIX path handling in the ledger.
+          - os: windows-latest
+            python: "3.12"
+          - os: macos-latest
+            python: "3.12"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python }}
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+
+  coverage:
+    name: Coverage floors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: charter-core branch coverage
+        run: uv run pytest -q --cov=charter_core --cov-branch --cov-fail-under=90
+
+  schema-drift:
+    name: Schema drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Regenerate and diff
+        # The published schemas are the normative artifact. If this fails, the
+        # models moved without the schema following: run `make schema`.
+        run: |
+          make schema
+          git diff --exit-code -- schema/
+
+  packaging:
+    name: Wheels install without the workspace
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          enable-cache: true
+      - name: Build both distributions
+        run: uv build --all-packages --out-dir dist/
+      - name: Install into a clean venv with no workspace present
+        # [tool.uv.sources] is stripped at build time, so this is what proves
+        # charter-cli's wheel declares charter-core as a real versioned
+        # dependency rather than a workspace path. Resolution goes through
+        # --find-links because neither distribution is published yet; the
+        # metadata under test is the same either way.
+        run: |
+          mkdir -p /tmp/clean && cd /tmp/clean
+          uv venv
+          uv pip install --no-cache --find-links "$GITHUB_WORKSPACE/dist" charter-cli
+          # Invoke the venv interpreter directly: `uv run` outside a project
+          # would try to resolve one, which is the opposite of the isolation
+          # this job exists to prove.
+          .venv/bin/python -c 'import charter_cli, charter_core; from charter_core.schema_export import SCHEMAS; print("installed charter-core", charter_core.__version__, sorted(SCHEMAS))'
+          # The `charter` console script is declared but not yet runnable: its
+          # entry point is charter_cli.main:app, which WP-3 adds. Assert it once
+          # that lands rather than pinning a gap the plan already accounts for.
