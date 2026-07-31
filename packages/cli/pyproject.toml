@@ -25,3 +25,21 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/charter_cli"]
+
+[tool.deptry]
+# This project's own package, renamed off its import name (S2) -- without
+# this, every internal `from charter_cli.x import y` reads as an undeclared
+# transitive dependency instead of the project's own code.
+known_first_party = ["charter_cli"]
+
+[tool.deptry.package_module_name_map]
+# charter-kit-core is a genuine external dependency here (declared above),
+# renamed off its import name for the same PyPI-collision reason (S2).
+"charter-kit-core" = "charter_core"
+
+[tool.deptry.per_rule_ignores]
+# Declared for the CLI commands S4 builds; nothing imports them yet because
+# no command exists (only exit_codes.py and __init__.py are implemented).
+# Narrow to these five names rather than blanket-ignoring DEP002, so a
+# genuinely unused dependency added later still fails this check.
+DEP002 = ["charter-kit-core", "typer", "rich", "structlog", "jsonschema"]

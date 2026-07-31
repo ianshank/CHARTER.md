@@ -26,9 +26,11 @@ CI rather than shipping silently.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from fractions import Fraction
+from types import MappingProxyType
 from typing import Any, Final, Literal
 
 WindowBoundary = Literal["inclusive", "exclusive"]
@@ -120,7 +122,12 @@ APPROVAL_POLICY_KEYS: Final[frozenset[str]] = frozenset(
 
 @dataclass(frozen=True, slots=True)
 class ResolvedSettings:
-    """Fully resolved thresholds for one evaluation."""
+    """Fully resolved thresholds for one evaluation.
+
+    ``provenance`` is wrapped in a :class:`~types.MappingProxyType` so that
+    ``frozen=True`` -- which only blocks reassigning the attribute -- extends
+    to blocking in-place mutation of the mapping a caller was handed.
+    """
 
     density_window_days: int
     density_threshold: int
@@ -130,7 +137,10 @@ class ResolvedSettings:
     require_review_artifact: bool
     ledger_pr_isolation: bool
     approval_policy: ApprovalPolicy
-    provenance: dict[str, SettingProvenance]
+    provenance: Mapping[str, SettingProvenance]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "provenance", MappingProxyType(dict(self.provenance)))
 
     def explain(self, key: str) -> SettingProvenance:
         """Return where ``key`` got its value."""
@@ -159,14 +169,22 @@ def _resolve(
     profile_preset: dict[str, Any],
     profile_name: str,
     provenance: dict[str, SettingProvenance],
+    pointer_prefix: str,
 ) -> Any:
-    """Resolve one key through the precedence chain, recording its source."""
+    """Resolve one key through the precedence chain, recording its source.
+
+    ``pointer_prefix`` is the JSON-pointer path to the object ``key`` lives
+    on in ``charter.yaml`` -- ``.../config`` for a top-level tunable,
+    ``.../config/approval_policy`` for one nested under it. A caller
+    following ``detail`` to check the document must land on the actual
+    field, not one level short of it.
+    """
     if config is not None and key in config and config[key] is not None:
         value = config[key]
         provenance[key] = SettingProvenance(
             value=value,
             source=SettingSource.EXPLICIT_CONFIG,
-            detail=f"charter.yaml#/config/{key}",
+            detail=f"{pointer_prefix}/{key}",
         )
         return value
 
@@ -213,6 +231,7 @@ def resolve_settings(
                 profile_preset=profile_preset,
                 profile_name=profile_name,
                 provenance=prov,
+                pointer_prefix="charter.yaml#/config",
             )
         else:
             raw[spec.key] = _resolve(
@@ -221,6 +240,7 @@ def resolve_settings(
                 profile_preset=approval_preset,
                 profile_name=profile_name,
                 provenance=prov,
+                pointer_prefix="charter.yaml#/config/approval_policy",
             )
 
     policy = ApprovalPolicy(

@@ -8,6 +8,7 @@ is what `charter explain settings` prints for a reviewer.
 from __future__ import annotations
 
 from fractions import Fraction
+from typing import Any
 
 import pytest
 
@@ -33,7 +34,7 @@ TUNABLES = (
 )
 
 
-def resolve(config: dict | None = None, profile: str = "standard"):
+def resolve(config: dict[str, Any] | None = None, profile: str = "standard"):
     p = get_profile(profile)
     return resolve_settings(config=config, profile_name=p.name, profile_preset=p.preset)
 
@@ -63,6 +64,26 @@ class TestPrecedence:
         settings = resolve({"approval_policy": {"min_approvals": 5}}, profile="enterprise")
         assert settings.approval_policy.min_approvals == 5
         assert settings.explain("min_approvals").source is SettingSource.EXPLICIT_CONFIG
+
+    def test_approval_policy_pointer_resolves_to_the_nested_field(self) -> None:
+        """The pointer must name where the field actually lives.
+
+        ``min_approvals`` sits under ``config.approval_policy``, not
+        ``config`` directly -- a reader following ``.../config/min_approvals``
+        would find nothing there.
+        """
+        settings = resolve({"approval_policy": {"min_approvals": 5}})
+        assert (
+            settings.explain("min_approvals").detail
+            == "charter.yaml#/config/approval_policy/min_approvals"
+        )
+
+    def test_top_level_config_pointer_has_no_approval_policy_segment(self) -> None:
+        settings = resolve({"density_window_days": 30})
+        assert (
+            settings.explain("density_window_days").detail
+            == "charter.yaml#/config/density_window_days"
+        )
 
     def test_null_config_value_falls_through(self) -> None:
         """An omitted key and an explicit null must behave identically."""

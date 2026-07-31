@@ -10,6 +10,13 @@ dependencies = [
     "ruamel.yaml>=0.18,<0.19",
 ]
 
+[dependency-groups]
+# jsonschema is a genuine dependency of charter-kit-core's own test suite
+# (the pydantic/jsonschema dual-validation agreement tests) -- declared here
+# so this package's tests are runnable from its own manifest, not only by
+# accident of charter-kit-cli happening to be installed alongside it.
+test = ["jsonschema>=4.23"]
+
 [project.urls]
 Homepage = "https://github.com/ianshank/CHARTER.md"
 
@@ -19,3 +26,12 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/charter_core"]
+
+[tool.deptry]
+# The distribution was renamed off the import name (S2, to avoid a PyPI
+# collision), so deptry's own hyphen/underscore heuristic for detecting this
+# project's first-party package ("charter-kit-core" -> "charter_kit_core")
+# lands on a name that is never actually imported, and every internal
+# absolute import (`from charter_core.x import y`) reads as an undeclared
+# transitive dependency instead of the project's own code.
+known_first_party = ["charter_core"]

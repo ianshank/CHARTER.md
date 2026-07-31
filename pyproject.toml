@@ -3,6 +3,7 @@ name = "charter-kit-workspace"
 version = "0.0.0"
 description = "Workspace root for charter-kit. Not published."
 requires-python = ">=3.11"
+license = "Apache-2.0"
 
 [tool.uv.workspace]
 members = ["packages/*"]
@@ -21,6 +22,13 @@ dev = [
     "import-linter>=2.1",
     "deptry>=0.21",
     "vulture>=2.13",
+    "pip-audit>=2.7",
+    "pre-commit>=4.0",
+    # charter-kit-core's own test suite imports jsonschema directly (the
+    # pydantic/jsonschema dual-validation agreement tests); pinned here to
+    # match charter-kit-cli's declared version rather than relying on it
+    # arriving transitively through that sibling package.
+    "jsonschema>=4.23",
     "charter-kit-core",
     "charter-kit-cli",
 ]
@@ -60,6 +68,10 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101", "S311", "D100", "D101", "D102", "D103", "D104", "PTH", "TID252"]
+# vulture's documented whitelist idiom is a bare attribute access to mark a
+# name "used" -- that is a useless expression by construction, and this file
+# is never imported or executed, only parsed by vulture.
+"vulture_whitelist.py" = ["B018"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -79,18 +91,36 @@ warn_unreachable = true
 warn_unused_configs = true
 enable_error_code = ["redundant-expr", "truthy-bool", "ignore-without-code"]
 plugins = ["pydantic.mypy"]
-files = ["packages/core/src", "packages/cli/src"]
+files = ["packages/core/src", "packages/cli/src", "packages/core/tests"]
 
 [[tool.mypy.overrides]]
-module = ["tests.*", "conftest"]
+# Test helpers (fixtures, small builders like `ctx()`/`result()`) are
+# deliberately left untyped, or partially typed, for brevity; the tests
+# themselves still get every other strict check, including verifying the
+# reference port fakes in test_contract_smoke.py actually satisfy their
+# Protocols. disallow_untyped_calls and disallow_incomplete_defs are relaxed
+# alongside disallow_untyped_defs because a fully-typed test calling a
+# deliberately-loose local helper would otherwise still fail.
+module = ["tests.*"]
 disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+
+[[tool.mypy.overrides]]
+# No inline type stubs published; the runtime behavior is what these tests
+# verify against, not its type surface.
+module = ["jsonschema", "jsonschema.*"]
+ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------
 # pytest
 # ---------------------------------------------------------------------------
 [tool.pytest.ini_options]
 minversion = "8.0"
-testpaths = ["packages/core/tests", "packages/cli/tests", "packages/mcp/tests"]
+# Only what exists today. packages/cli/tests and packages/mcp/tests will be
+# added back here as part of the work package that creates them -- an
+# already-listed-but-absent path is dead configuration, not forward planning.
+testpaths = ["packages/core/tests"]
 addopts = "-ra --strict-markers --strict-config"
 markers = [
     "req(id): the SPEC requirement id this test provides coverage for",
@@ -113,11 +143,19 @@ exclude_also = [
     "class .*\\(Protocol\\):",
 ]
 show_missing = true
+# The floor S3 committed to but never actually enforced outside the CI YAML
+# (which pinned 90, scoped only to charter_core). One number, here, so
+# `make cov` and CI can never silently disagree with each other or with the
+# plan again.
+fail_under = 95
 
 # ---------------------------------------------------------------------------
 # vulture
 # ---------------------------------------------------------------------------
 [tool.vulture]
 min_confidence = 80
-paths = ["packages"]
+# vulture_whitelist.py documents Protocol method parameters (ports.py) that
+# are unused by design -- an interface contract, not implementation -- and
+# would otherwise be 100%-confidence false positives on every run.
+paths = ["packages", "vulture_whitelist.py"]
 exclude = ["*/tests/*"]

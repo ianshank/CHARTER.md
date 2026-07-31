@@ -252,7 +252,7 @@ def test_every_event_kind_has_a_constructible_variant(kind: EventKind) -> None:
             "reason": "The safety constraint referenced the wrong test module.",
         },
     }
-    event = TypeAdapter(LedgerEvent).validate_python(
+    event: LedgerEvent = TypeAdapter(LedgerEvent).validate_python(
         {"event_type": kind.value, "actor": actor, **payloads[kind]}
     )
     assert event.event_type is kind
@@ -260,7 +260,7 @@ def test_every_event_kind_has_a_constructible_variant(kind: EventKind) -> None:
 
 def test_resolved_event_key_matches_the_filename_grammar() -> None:
     """The stem and the payload must agree, or provenance points at the wrong event."""
-    event = TypeAdapter(LedgerEvent).validate_python(
+    event: LedgerEvent = TypeAdapter(LedgerEvent).validate_python(
         {
             "event_type": "carveout.retired",
             "id": "CO-7",

@@ -510,7 +510,7 @@
     },
     "ReviewScope": {
       "additionalProperties": false,
-      "description": "What a review covers.\n\nExactly one of ``global_`` or a non-empty ``non_goals`` list, so the scope a\nclosure reopens is never ambiguous.",
+      "description": "What a review covers.\n\nExactly one of ``global_`` or a non-empty ``non_goals`` list, so the scope a\nclosure reopens is never ambiguous. ``populate_by_name`` accepts the field\nname as well as the ``global`` alias on input, so ``model_dump()`` without\n``by_alias=True`` -- which emits the field name -- still round-trips\nthrough ``model_validate``.",
       "properties": {
         "global": {
           "default": false,

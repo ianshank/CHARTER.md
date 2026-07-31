@@ -46,11 +46,13 @@ VALID_CONSTRAINTS: dict[str, str] = {
     "sequencing": "Expires when the covering review closes, or on 2027-01-01.",
 }
 
-_EVENT_ADAPTER: TypeAdapter[Any] = TypeAdapter(LedgerEvent)
-_CHARTER_ADAPTER: TypeAdapter[Any] = TypeAdapter(Charter)
+_EVENT_ADAPTER: TypeAdapter[LedgerEvent] = TypeAdapter(LedgerEvent)
+_CHARTER_ADAPTER: TypeAdapter[Charter] = TypeAdapter(Charter)
 
 
-def non_goal(ng_id: str = "NG-1", *, budget: int | None = None, status: str = "active") -> dict:
+def non_goal(
+    ng_id: str = "NG-1", *, budget: int | None = None, status: str = "active"
+) -> dict[str, Any]:
     doc: dict[str, Any] = {
         "id": ng_id,
         "text": f"The system does not do the thing {ng_id} names.",
@@ -64,11 +66,11 @@ def non_goal(ng_id: str = "NG-1", *, budget: int | None = None, status: str = "a
 
 def charter(
     *,
-    non_goals: list[dict] | None = None,
+    non_goals: list[dict[str, Any]] | None = None,
     status: str = "ratified",
     profile: str = "standard",
     adopted_at: datetime | None = None,
-    config: dict | None = None,
+    config: dict[str, Any] | None = None,
     charter_version: str = "1.0.0",
 ) -> Charter:
     """A valid Charter, with sane defaults overridable per test."""
@@ -90,7 +92,7 @@ def provenance(*, at: datetime = AT, sha: str = "abc123", provisional: bool = Fa
     return Provenance(commit_sha=sha, committed_at=at, first_parent=True, provisional=provisional)
 
 
-def _resolve(path: str, payload: dict, *, at: datetime, sha: str) -> ResolvedEvent:
+def _resolve(path: str, payload: dict[str, Any], *, at: datetime, sha: str) -> ResolvedEvent:
     event = _EVENT_ADAPTER.validate_python(payload)
     return ResolvedEvent(path=LedgerPath(path), event=event, provenance=provenance(at=at, sha=sha))
 

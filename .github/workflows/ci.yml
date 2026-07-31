@@ -71,8 +71,10 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --frozen
-      - name: charter-core branch coverage
-        run: uv run pytest -q --cov=charter_core --cov-branch --cov-fail-under=90
+      - name: branch coverage
+        # The floor lives in [tool.coverage.report] fail_under, the one place
+        # `make cov` and this job can never disagree about the number.
+        run: make cov
 
   schema-drift:
     name: Schema drift
@@ -89,6 +91,49 @@ jobs:
         run: |
           make schema
           git diff --exit-code -- schema/
+
+  hygiene:
+    name: Dependency and dead-code hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: deptry
+        # Installed as a dev dependency since S1 but never actually run until
+        # now -- per-package invocation, config lives in each package's own
+        # pyproject.toml (workspace-root invocation false-positives on every
+        # internal absolute import; see packages/*/pyproject.toml).
+        run: make deptry
+      - name: vulture
+        run: make vulture
+
+  security:
+    name: Dependency vulnerabilities and secrets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # gitleaks scans full history, not just the checked-out tree
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: pip-audit
+        run: make audit
+      - name: gitleaks
+        # Pinned by major-version tag, not SHA like the other actions in this
+        # file: this session had no way to verify a specific commit SHA for a
+        # third-party action outside its repository access scope, and a
+        # fabricated SHA is worse than a floating major tag. Replace with a
+        # verified SHA pin when convenient.
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   packaging:
     name: Wheels install without the workspace
