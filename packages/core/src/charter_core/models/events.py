@@ -31,6 +31,7 @@ from charter_core.models.common import (
     ReviewIdStr,
     SemVerStr,
     ShortText,
+    StrictBool,
     UtcModel,
 )
 
@@ -110,7 +111,7 @@ class ReviewScope(UtcModel):
     closure reopens is never ambiguous.
     """
 
-    global_: bool = Field(default=False, alias="global")
+    global_: StrictBool = Field(default=False, alias="global")
     non_goals: tuple[NonGoalIdStr, ...] = ()
 
 
@@ -127,7 +128,7 @@ class CarveOutRatified(EventBase):
         default=None,
         description="Declared expiry. A statement about the future, so storing it is legal.",
     )
-    self_ratified: bool = Field(
+    self_ratified: StrictBool = Field(
         default=False,
         description="Visible, never hidden. Permitted only under the lite profile.",
     )

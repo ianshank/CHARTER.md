@@ -401,3 +401,30 @@ def test_evaluation_report_model_constructs() -> None:
     )
     assert report.verdict.rendered == "PASS"
     assert report.report_version == "1"
+
+
+@pytest.mark.parametrize(
+    ("entity_id", "expected"),
+    [("NG-1", 1), ("CO-12", 12), ("RV-100", 100), ("CR-7", 7)],
+)
+def test_ordinal_extracts_the_numeric_part(entity_id: str, expected: int) -> None:
+    """Used for allocating the next free id; the grammar guarantees the split."""
+    from charter_core.ids import ordinal
+
+    assert ordinal(entity_id) == expected
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "ledger/CO-1.bogus.yaml",
+        "ledger/CO-1.ratified.yml",
+        "ledger/CO-01.ratified.yaml",
+        "ledger/../CO-1.ratified.yaml",
+        "reviews/CO-1.ratified.yaml",
+        "ledger/CO-1.ratified.yaml\n",
+    ],
+)
+def test_malformed_ledger_paths_do_not_parse(path: str) -> None:
+    """The filename grammar is normative; anything off-grammar has no identity."""
+    assert parse_ledger_path(path) is None

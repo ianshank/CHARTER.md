@@ -16,7 +16,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
-from charter_core.models.common import StrictModel
+from charter_core.models.common import StrictBool, StrictModel
 
 
 class SettingProvenanceOut(StrictModel):
@@ -37,8 +37,8 @@ class EventFact(StrictModel):
     committed_at: str
     order_index: int
     status: str | None = None
-    provisional: bool = False
-    historical: bool = False
+    provisional: StrictBool = False
+    historical: StrictBool = False
 
 
 class CountFacts(StrictModel):
@@ -70,7 +70,7 @@ class TriggerReport(StrictModel):
 
     trigger_id: str
     kind: Literal["velocity", "level"]
-    fired: bool
+    fired: StrictBool
     scope: str
     observed: str
     threshold: str
@@ -125,8 +125,8 @@ class InputFacts(StrictModel):
     base_ref: str | None = None
     head_ref: str | None = None
     default_ref: str | None = None
-    shallow: bool = False
-    provisional: bool = False
+    shallow: StrictBool = False
+    provisional: StrictBool = False
 
 
 class EvaluationReport(StrictModel):

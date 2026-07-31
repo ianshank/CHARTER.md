@@ -27,30 +27,62 @@ This module is pure: it decodes text that a caller has already read.
 
 from __future__ import annotations
 
-import re
 from io import StringIO
 from typing import Any, Final
 
 from ruamel.yaml import YAML
 from ruamel.yaml.constructor import DuplicateKeyError, SafeConstructor
 from ruamel.yaml.error import MarkedYAMLError
+from ruamel.yaml.events import (
+    AliasEvent,
+    DocumentStartEvent,
+    MappingStartEvent,
+    ScalarEvent,
+    SequenceStartEvent,
+)
 from ruamel.yaml.nodes import ScalarNode
+from ruamel.yaml.reader import ReaderError
 
 MAX_DOCUMENT_BYTES: Final[int] = 256 * 1024
 
-_ANCHOR_OR_ALIAS_RE: Final[re.Pattern[str]] = re.compile(
-    r"(?m)^\s*[^#\n]*?(?:\s|^)[&*][A-Za-z0-9_-]+"
-)
-_MERGE_KEY_RE: Final[re.Pattern[str]] = re.compile(r"(?m)^\s*<<\s*:")
-_DOC_SEPARATOR_RE: Final[re.Pattern[str]] = re.compile(r"(?m)^---\s*$")
+#: Events that can carry an anchor definition (``&name``).
+_ANCHORABLE_EVENTS: Final = (ScalarEvent, MappingStartEvent, SequenceStartEvent)
 
 
 class CodecError(ValueError):
-    """A document could not be decoded under the safe dialect."""
+    """A document could not be decoded under the safe dialect.
 
-    def __init__(self, message: str, *, hazard: str) -> None:
+    ``hazard`` names the guard that fired, so callers can map the failure to a
+    stable diagnostic code rather than matching on message text.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        hazard: str,
+        line: int | None = None,
+        column: int | None = None,
+    ) -> None:
         super().__init__(message)
         self.hazard = hazard
+        self.line = line
+        self.column = column
+
+
+def _format_yaml_error(exc: MarkedYAMLError) -> str:
+    """Render a parser error with its position, dropping ruamel's own advice.
+
+    ruamel appends suggestions aimed at Python authors ("could not find expected
+    ':'"), which are unhelpful to someone editing a ledger file. What they need
+    is the problem and where it is.
+    """
+    mark = exc.problem_mark
+    problem = (exc.problem or str(exc)).strip()
+    if mark is None:
+        return problem
+    # ruamel marks are zero-based; editors are one-based.
+    return f"{problem} (line {mark.line + 1}, column {mark.column + 1})"
 
 
 class _JsonModelConstructor(SafeConstructor):
@@ -75,8 +107,8 @@ def _reader() -> YAML:
     return yaml
 
 
-def _guard(text: str) -> None:
-    """Reject constructs that are unsafe or unreviewable in a governance file."""
+def _guard_size_and_encoding(text: str) -> None:
+    """Cheap guards that must run before the parser sees the document."""
     if len(text.encode("utf-8")) > MAX_DOCUMENT_BYTES:
         raise CodecError(
             f"Document exceeds {MAX_DOCUMENT_BYTES} bytes.",
@@ -87,24 +119,52 @@ def _guard(text: str) -> None:
             "Document starts with a byte order mark; use plain UTF-8.",
             hazard="bom",
         )
-    if _MERGE_KEY_RE.search(text):
-        raise CodecError(
-            "Merge keys ('<<:') are not permitted; write the mapping out in full.",
-            hazard="merge_key",
-        )
-    if _ANCHOR_OR_ALIAS_RE.search(text):
-        raise CodecError(
-            "Anchors and aliases are not permitted; they make review unreliable.",
-            hazard="anchor_alias",
-        )
-    # A leading '---' is a legal document start; a second one begins a stream.
-    separators = _DOC_SEPARATOR_RE.findall(text)
-    leading = text.lstrip().startswith("---")
-    if len(separators) > (1 if leading else 0):
-        raise CodecError(
-            "Multi-document streams are not permitted; use one document per file.",
-            hazard="multi_document",
-        )
+
+
+def _guard_structure(text: str) -> None:
+    """Reject constructs that are unsafe or unreviewable in a governance file.
+
+    This inspects the YAML **event stream** rather than the raw text. A lexical
+    scan cannot do this job: it is unsound in both directions, rejecting
+    ordinary prose (``note: "this is *important* context"`` reads as an alias)
+    while missing constructs that do not match its shape. The parser already
+    knows exactly what is an anchor, an alias, and a document boundary, so ask
+    it instead of guessing.
+
+    Merge keys (``<<:``) are caught here too: a merge key is expressed as an
+    alias, so rejecting aliases rejects merges by construction.
+
+    Cost is one extra parse pass, which is bounded because
+    :func:`_guard_size_and_encoding` runs first.
+    """
+    documents = 0
+    try:
+        for event in _reader().parse(StringIO(text)):
+            if isinstance(event, DocumentStartEvent):
+                documents += 1
+                if documents > 1:
+                    raise CodecError(
+                        "Multi-document streams are not permitted; use one document per file.",
+                        hazard="multi_document",
+                    )
+            elif isinstance(event, AliasEvent):
+                raise CodecError(
+                    "Aliases and merge keys are not permitted; write the value out in full.",
+                    hazard="anchor_alias",
+                )
+            elif isinstance(event, _ANCHORABLE_EVENTS) and event.anchor:
+                raise CodecError(
+                    f"Anchors are not permitted (found '&{event.anchor}'); "
+                    "they make review unreliable.",
+                    hazard="anchor_alias",
+                )
+    except MarkedYAMLError as exc:
+        raise CodecError(_format_yaml_error(exc), hazard="malformed") from exc
+    except ReaderError as exc:
+        # Undecodable bytes or disallowed control characters. This guard reads
+        # the whole document, so it is where such input surfaces -- without
+        # this the exception escapes as a stack trace instead of a diagnosis.
+        raise CodecError(f"Document is not readable UTF-8 text: {exc}", hazard="encoding") from exc
 
 
 def decode(text: str) -> dict[str, Any]:
@@ -114,16 +174,17 @@ def decode(text: str) -> dict[str, Any]:
     ``"no"``, timestamps stay text -- so that pydantic performs every coercion
     under a declared type rather than the YAML resolver guessing.
     """
-    _guard(text)
+    _guard_size_and_encoding(text)
+    _guard_structure(text)
     try:
         loaded = _reader().load(StringIO(text))
     except DuplicateKeyError as exc:
         raise CodecError(
-            f"Duplicate key in document: {exc}",
+            f"Duplicate key in document: {_format_yaml_error(exc)}",
             hazard="duplicate_key",
         ) from exc
     except MarkedYAMLError as exc:
-        raise CodecError(f"Malformed YAML: {exc}", hazard="malformed") from exc
+        raise CodecError(_format_yaml_error(exc), hazard="malformed") from exc
 
     if loaded is None:
         return {}

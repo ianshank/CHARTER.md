@@ -8,10 +8,12 @@
       "properties": {
         "identity": {
           "minLength": 1,
+          "pattern": "\\S",
           "type": "string"
         },
         "role": {
           "minLength": 1,
+          "pattern": "\\S",
           "type": "string"
         }
       },
@@ -37,7 +39,7 @@
           "type": "string"
         },
         "id": {
-          "pattern": "^CO-[1-9][0-9]*$",
+          "pattern": "^CO-[1-9][0-9]*(?![\\s\\S])",
           "type": "string"
         },
         "note": {
@@ -54,12 +56,13 @@
         },
         "reason": {
           "minLength": 8,
+          "pattern": "\\S",
           "type": "string"
         },
         "spec_version": {
           "anyOf": [
             {
-              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?![\\s\\S])",
               "type": "string"
             },
             {
@@ -108,11 +111,11 @@
           "description": "Declared expiry. A statement about the future, so storing it is legal."
         },
         "id": {
-          "pattern": "^CO-[1-9][0-9]*$",
+          "pattern": "^CO-[1-9][0-9]*(?![\\s\\S])",
           "type": "string"
         },
         "non_goal": {
-          "pattern": "^NG-[1-9][0-9]*$",
+          "pattern": "^NG-[1-9][0-9]*(?![\\s\\S])",
           "type": "string"
         },
         "note": {
@@ -142,7 +145,7 @@
         "spec_version": {
           "anyOf": [
             {
-              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?![\\s\\S])",
               "type": "string"
             },
             {
@@ -154,6 +157,7 @@
         },
         "title": {
           "minLength": 1,
+          "pattern": "\\S",
           "type": "string"
         }
       },
@@ -181,7 +185,7 @@
           "type": "string"
         },
         "id": {
-          "pattern": "^CO-[1-9][0-9]*$",
+          "pattern": "^CO-[1-9][0-9]*(?![\\s\\S])",
           "type": "string"
         },
         "note": {
@@ -198,12 +202,13 @@
         },
         "reason": {
           "minLength": 8,
+          "pattern": "\\S",
           "type": "string"
         },
         "spec_version": {
           "anyOf": [
             {
-              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?![\\s\\S])",
               "type": "string"
             },
             {
@@ -229,21 +234,25 @@
         "bounding": {
           "description": "What the carve-out does and does not reach.",
           "minLength": 24,
+          "pattern": "\\S",
           "type": "string"
         },
         "mechanism": {
           "description": "How it is implemented and who owns it.",
           "minLength": 24,
+          "pattern": "\\S",
           "type": "string"
         },
         "safety": {
           "description": "What prevents it causing harm, and how that is verified.",
           "minLength": 24,
+          "pattern": "\\S",
           "type": "string"
         },
         "sequencing": {
           "description": "When it expires or what supersedes it.",
           "minLength": 24,
+          "pattern": "\\S",
           "type": "string"
         }
       },
@@ -284,7 +293,7 @@
           "description": "Replacement values, for supersede corrections only."
         },
         "id": {
-          "pattern": "^CR-[1-9][0-9]*$",
+          "pattern": "^CR-[1-9][0-9]*(?![\\s\\S])",
           "type": "string"
         },
         "kind": {
@@ -304,12 +313,13 @@
         },
         "reason": {
           "minLength": 8,
+          "pattern": "\\S",
           "type": "string"
         },
         "spec_version": {
           "anyOf": [
             {
-              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?![\\s\\S])",
               "type": "string"
             },
             {
@@ -344,6 +354,7 @@
       "properties": {
         "event_key": {
           "minLength": 1,
+          "pattern": "\\S",
           "type": "string"
         }
       },
@@ -369,7 +380,7 @@
           "description": "Who authored this event."
         },
         "artifact": {
-          "pattern": "^reviews/[A-Za-z0-9._/-]+\\.md$",
+          "pattern": "^reviews/(?!.*\\.\\.)[A-Za-z0-9._/-]+\\.md(?![\\s\\S])",
           "type": "string"
         },
         "closed_by": {
@@ -384,7 +395,7 @@
           "type": "string"
         },
         "id": {
-          "pattern": "^RV-[1-9][0-9]*$",
+          "pattern": "^RV-[1-9][0-9]*(?![\\s\\S])",
           "type": "string"
         },
         "note": {
@@ -405,7 +416,7 @@
         "spec_version": {
           "anyOf": [
             {
-              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?![\\s\\S])",
               "type": "string"
             },
             {
@@ -435,7 +446,7 @@
           "description": "Who authored this event."
         },
         "artifact": {
-          "pattern": "^reviews/[A-Za-z0-9._/-]+\\.md$",
+          "pattern": "^reviews/(?!.*\\.\\.)[A-Za-z0-9._/-]+\\.md(?![\\s\\S])",
           "type": "string"
         },
         "event_type": {
@@ -443,7 +454,7 @@
           "type": "string"
         },
         "id": {
-          "pattern": "^RV-[1-9][0-9]*$",
+          "pattern": "^RV-[1-9][0-9]*(?![\\s\\S])",
           "type": "string"
         },
         "note": {
@@ -464,7 +475,7 @@
         "spec_version": {
           "anyOf": [
             {
-              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?![\\s\\S])",
               "type": "string"
             },
             {
@@ -508,7 +519,7 @@
         "non_goals": {
           "default": [],
           "items": {
-            "pattern": "^NG-[1-9][0-9]*$",
+            "pattern": "^NG-[1-9][0-9]*(?![\\s\\S])",
             "type": "string"
           },
           "type": "array"

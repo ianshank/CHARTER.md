@@ -10,26 +10,36 @@ from __future__ import annotations
 import re
 from typing import Final, NewType
 
+from charter_core.models.common import END
+from charter_core.models.events import KIND_SUFFIX
+
 NonGoalId = NewType("NonGoalId", str)
 CarveOutId = NewType("CarveOutId", str)
 ReviewId = NewType("ReviewId", str)
 CorrectionId = NewType("CorrectionId", str)
 LedgerPath = NewType("LedgerPath", str)
 
-NON_GOAL_RE: Final[re.Pattern[str]] = re.compile(r"^NG-[1-9][0-9]*$")
-CARVE_OUT_RE: Final[re.Pattern[str]] = re.compile(r"^CO-[1-9][0-9]*$")
-REVIEW_RE: Final[re.Pattern[str]] = re.compile(r"^RV-[1-9][0-9]*$")
-CORRECTION_RE: Final[re.Pattern[str]] = re.compile(r"^CR-[1-9][0-9]*$")
+NON_GOAL_RE: Final[re.Pattern[str]] = re.compile(rf"^NG-[1-9][0-9]*{END}")
+CARVE_OUT_RE: Final[re.Pattern[str]] = re.compile(rf"^CO-[1-9][0-9]*{END}")
+REVIEW_RE: Final[re.Pattern[str]] = re.compile(rf"^RV-[1-9][0-9]*{END}")
+CORRECTION_RE: Final[re.Pattern[str]] = re.compile(rf"^CR-[1-9][0-9]*{END}")
 
 LEDGER_DIR: Final[str] = "ledger"
 REVIEWS_DIR: Final[str] = "reviews"
+
+#: The filename suffixes, derived from the event union rather than restated.
+#:
+#: Writing them out again here would let the filename grammar drift away from
+#: the events it names -- add a variant to ``EventKind`` and the grammar would
+#: silently keep rejecting it.
+_KIND_ALTERNATION: Final[str] = "|".join(sorted(set(KIND_SUFFIX.values())))
 
 #: Ledger filenames are restricted to a conservative character set so that
 #: case-insensitive and Unicode-normalising filesystems cannot introduce two
 #: paths the engine would consider distinct.
 LEDGER_PATH_RE: Final[re.Pattern[str]] = re.compile(
-    r"^ledger/(?P<id>(?:CO|RV|CR)-[1-9][0-9]*)"
-    r"\.(?P<kind>ratified|retired|expired|opened|closed|correction)\.yaml$"
+    rf"^{LEDGER_DIR}/(?P<id>(?:CO|RV|CR)-[1-9][0-9]*)"
+    rf"\.(?P<kind>{_KIND_ALTERNATION})\.yaml{END}"
 )
 
 

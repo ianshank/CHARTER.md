@@ -18,9 +18,12 @@ from typing import Annotated, Final, Literal
 from pydantic import AwareDatetime, Field, field_validator, model_validator
 
 from charter_core.models.common import (
+    DocFloat,
+    DocInt,
     NonGoalIdStr,
     Prose,
     SemVerStr,
+    StrictBool,
     StrictModel,
     UtcModel,
 )
@@ -50,7 +53,7 @@ class NonGoal(UtcModel):
     text: Prose = Field(description="The boundary, stated as a negative capability.")
     rationale: Prose = Field(description="Why this boundary exists.")
     status: Literal["active", "retired"] = "active"
-    budget: Annotated[int, Field(ge=0)] | None = Field(
+    budget: Annotated[DocInt, Field(ge=0)] | None = Field(
         default=None,
         description="Concurrent carve-outs permitted. Falls back to config, profile, schema.",
     )
@@ -59,10 +62,10 @@ class NonGoal(UtcModel):
 class ApprovalPolicyConfig(UtcModel):
     """Per-charter override of the profile's approval policy."""
 
-    min_approvals: Annotated[int, Field(ge=0)] | None = None
-    require_code_owner: bool | None = None
-    distinct_from_author: bool | None = None
-    self_ratification_allowed: bool | None = None
+    min_approvals: Annotated[DocInt, Field(ge=0)] | None = None
+    require_code_owner: StrictBool | None = None
+    distinct_from_author: StrictBool | None = None
+    self_ratification_allowed: StrictBool | None = None
 
 
 class ConfigBlock(UtcModel):
@@ -73,13 +76,13 @@ class ConfigBlock(UtcModel):
     supplied it.
     """
 
-    density_window_days: Annotated[int, Field(ge=1)] | None = None
-    density_threshold: Annotated[int, Field(ge=1)] | None = None
-    cumulative_ratio: Annotated[float, Field(gt=0, le=1)] | None = None
-    default_carveout_budget: Annotated[int, Field(ge=0)] | None = None
+    density_window_days: Annotated[DocInt, Field(ge=1)] | None = None
+    density_threshold: Annotated[DocInt, Field(ge=1)] | None = None
+    cumulative_ratio: Annotated[DocFloat, Field(gt=0, le=1)] | None = None
+    default_carveout_budget: Annotated[DocInt, Field(ge=0)] | None = None
     window_boundary: Literal["inclusive", "exclusive"] | None = None
-    require_review_artifact: bool | None = None
-    ledger_pr_isolation: bool | None = None
+    require_review_artifact: StrictBool | None = None
+    ledger_pr_isolation: StrictBool | None = None
     approval_policy: ApprovalPolicyConfig | None = None
 
 
