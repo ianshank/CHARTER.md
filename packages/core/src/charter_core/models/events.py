@@ -18,7 +18,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Annotated, Literal
 
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, ConfigDict, Field, model_validator
 
 from charter_core.models.common import (
     ActorModel,
@@ -108,11 +108,24 @@ class ReviewScope(UtcModel):
     """What a review covers.
 
     Exactly one of ``global_`` or a non-empty ``non_goals`` list, so the scope a
-    closure reopens is never ambiguous.
+    closure reopens is never ambiguous. ``populate_by_name`` accepts the field
+    name as well as the ``global`` alias on input, so ``model_dump()`` without
+    ``by_alias=True`` -- which emits the field name -- still round-trips
+    through ``model_validate``.
     """
+
+    model_config = ConfigDict(populate_by_name=True)
 
     global_: StrictBool = Field(default=False, alias="global")
     non_goals: tuple[NonGoalIdStr, ...] = ()
+
+    @model_validator(mode="after")
+    def _exactly_one_scope(self) -> ReviewScope:
+        if self.global_ and self.non_goals:
+            raise ValueError("scope must be either global or scoped to non-goals, not both")
+        if not self.global_ and not self.non_goals:
+            raise ValueError("scope must be global, or name at least one non-goal")
+        return self
 
 
 class CarveOutRatified(EventBase):

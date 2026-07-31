@@ -177,10 +177,12 @@ class TestRatchetBaseline:
             review_closed(at=T(4)),
         ]
         state = project(charter(), events, at=T(10))
-        assert state.baselines.for_non_goal("NG-1") == 3
+        baseline = state.baselines.for_non_goal("NG-1")
+        assert baseline is not None
+        assert baseline == 3
         active_now = len(state.active_carveouts_for("NG-1"))
         assert active_now == 3
-        assert not (active_now > state.baselines.for_non_goal("NG-1"))
+        assert not (active_now > baseline)
 
     @pytest.mark.req("REQ-TRIGGER-004")
     def test_ratchet_further_erosion_still_refires(self) -> None:
@@ -197,10 +199,12 @@ class TestRatchetBaseline:
             ratified("CO-4", at=T(5)),
         ]
         state = project(charter(), events, at=T(6))
-        assert state.baselines.for_non_goal("NG-1") == 3
+        baseline = state.baselines.for_non_goal("NG-1")
+        assert baseline is not None
+        assert baseline == 3
         active_now = len(state.active_carveouts_for("NG-1"))
         assert active_now == 4
-        assert active_now > state.baselines.for_non_goal("NG-1")
+        assert active_now > baseline
 
     @pytest.mark.req("REQ-TRIGGER-004")
     def test_ratchet_improvement_locks_in_a_lower_baseline(self) -> None:
@@ -222,8 +226,10 @@ class TestRatchetBaseline:
         # A carve-out returning the level to 3 is now above the lowered floor.
         with_new = [*events, ratified("CO-4", at=T(7))]
         later = project(charter(), with_new, at=T(8))
+        later_baseline = later.baselines.for_non_goal("NG-1")
+        assert later_baseline is not None
         assert len(later.active_carveouts_for("NG-1")) == 3
-        assert later.baselines.for_non_goal("NG-1") < 3
+        assert later_baseline < 3
 
     @pytest.mark.req("REQ-TRIGGER-004")
     def test_a_later_closure_overrides_an_earlier_ones_baseline(self) -> None:

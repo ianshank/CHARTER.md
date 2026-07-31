@@ -23,6 +23,19 @@ def test_every_code_is_well_formed() -> None:
         assert CODE_RE.match(member.code), f"{member.name} has malformed code {member.code}"
 
 
+def test_member_name_prefix_matches_its_code_prefix() -> None:
+    """A grep for the bare code must find both the definition and every use site.
+
+    Members are named ``<CODE>_<SLUG>``; a name/code letter mismatch silently
+    breaks that grep.
+    """
+    for member in CK:
+        code_prefix = member.code.removeprefix("CK-")[0]
+        assert member.name.startswith(code_prefix), (
+            f"{member.name} is named {code_prefix!r}-prefixed but its code is {member.code!r}"
+        )
+
+
 def test_codes_are_unique() -> None:
     codes = [m.code for m in CK]
     assert len(codes) == len(set(codes)), "duplicate diagnostic code"

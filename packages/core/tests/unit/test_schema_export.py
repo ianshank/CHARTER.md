@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+from typing import Any
 
 import pytest
 from jsonschema import Draft202012Validator, FormatChecker
@@ -24,8 +25,11 @@ from charter_core.version import SCHEMA_VERSION
 SCHEMA_DIR = pathlib.Path(__file__).resolve().parents[4] / "schema"
 
 
-def committed(name: str) -> dict:
-    return json.loads((SCHEMA_DIR / f"{name}.schema.json").read_text(encoding="utf-8"))
+def committed(name: str) -> dict[str, Any]:
+    result: dict[str, Any] = json.loads(
+        (SCHEMA_DIR / f"{name}.schema.json").read_text(encoding="utf-8")
+    )
+    return result
 
 
 @pytest.mark.req("REQ-SCHEMA-001")
@@ -191,7 +195,7 @@ VALID_EVENT = {
     ],
 )
 def test_pydantic_and_jsonschema_agree(
-    name: str, adapter: TypeAdapter, document: dict, expected_valid: bool
+    name: str, adapter: TypeAdapter[Any], document: dict[str, Any], expected_valid: bool
 ) -> None:
     """The two validators must never disagree.
 

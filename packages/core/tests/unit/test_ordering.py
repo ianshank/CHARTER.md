@@ -23,7 +23,7 @@ LATER = datetime(2026, 8, 1, 12, 0, 0, tzinfo=UTC)
 
 
 def _retired(co_id: str, path: str, *, at: datetime, sha: str) -> ResolvedEvent:
-    event = TypeAdapter(LedgerEvent).validate_python(
+    event: LedgerEvent = TypeAdapter(LedgerEvent).validate_python(
         {
             "event_type": "carveout.retired",
             "id": co_id,

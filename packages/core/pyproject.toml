@@ -10,6 +10,13 @@ dependencies = [
     "ruamel.yaml>=0.18,<0.19",
 ]
 
+[dependency-groups]
+# jsonschema is a genuine dependency of charter-kit-core's own test suite
+# (the pydantic/jsonschema dual-validation agreement tests) -- declared here
+# so this package's tests are runnable from its own manifest, not only by
+# accident of charter-kit-cli happening to be installed alongside it.
+test = ["jsonschema>=4.23"]
+
 [project.urls]
 Homepage = "https://github.com/ianshank/CHARTER.md"
 

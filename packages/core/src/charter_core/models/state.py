@@ -7,10 +7,12 @@ while carve-outs and reviews still have lifecycles.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from fractions import Fraction
+from types import MappingProxyType
 
 from charter_core.ids import LedgerPath
 from charter_core.models.events import EventKind, LedgerEvent
@@ -115,10 +117,17 @@ class Baselines:
     lowers the bar. This is what stops a closed review from either deadlocking
     (fire immediately again) or resetting to zero (which would remove the
     erosion ceiling entirely and turn a budget into a rate limit).
+
+    ``per_non_goal`` is wrapped in a :class:`~types.MappingProxyType` so that
+    ``frozen=True`` -- which only blocks reassigning the attribute -- extends
+    to blocking in-place mutation of the mapping a caller was handed.
     """
 
-    per_non_goal: dict[str, int] = field(default_factory=dict)
+    per_non_goal: Mapping[str, int] = field(default_factory=dict)
     cumulative: Fraction | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "per_non_goal", MappingProxyType(dict(self.per_non_goal)))
 
     def for_non_goal(self, non_goal_id: str) -> int | None:
         """The per-non-goal baseline, if a covering review has closed."""
@@ -127,13 +136,23 @@ class Baselines:
 
 @dataclass(frozen=True, slots=True)
 class LedgerState:
-    """The full derived projection of the ledger at one instant."""
+    """The full derived projection of the ledger at one instant.
+
+    ``carveouts`` and ``reviews`` are wrapped in :class:`~types.MappingProxyType`
+    for the same reason as :attr:`Baselines.per_non_goal`: a caller holding a
+    reference to a "never stored, always recomputed" snapshot must not be able
+    to corrupt it for every other holder of the same reference.
+    """
 
     ordered: tuple[ResolvedEvent, ...]
-    carveouts: dict[str, CarveOutState]
-    reviews: dict[str, ReviewState]
+    carveouts: Mapping[str, CarveOutState]
+    reviews: Mapping[str, ReviewState]
     baselines: Baselines
     evaluated_at: datetime
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "carveouts", MappingProxyType(dict(self.carveouts)))
+        object.__setattr__(self, "reviews", MappingProxyType(dict(self.reviews)))
 
     @property
     def open_reviews(self) -> tuple[ReviewState, ...]:
@@ -190,11 +209,19 @@ class Closure(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class PathState:
-    """Per-non-goal and global amendment-path state, always computed."""
+    """Per-non-goal and global amendment-path state, always computed.
+
+    ``per_non_goal`` and ``causes`` are wrapped in :class:`~types.MappingProxyType`
+    for the same reason as :class:`Baselines` and :class:`LedgerState`.
+    """
 
     global_state: Closure
-    per_non_goal: dict[str, Closure]
-    causes: dict[str, tuple[str, ...]]
+    per_non_goal: Mapping[str, Closure]
+    causes: Mapping[str, tuple[str, ...]]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "per_non_goal", MappingProxyType(dict(self.per_non_goal)))
+        object.__setattr__(self, "causes", MappingProxyType(dict(self.causes)))
 
     def for_non_goal(self, non_goal_id: str) -> Closure:
         """Effective closure for one non-goal, accounting for global state."""

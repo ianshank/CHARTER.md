@@ -21,6 +21,11 @@ dev = [
     "import-linter>=2.1",
     "deptry>=0.21",
     "vulture>=2.13",
+    # charter-kit-core's own test suite imports jsonschema directly (the
+    # pydantic/jsonschema dual-validation agreement tests); pinned here to
+    # match charter-kit-cli's declared version rather than relying on it
+    # arriving transitively through that sibling package.
+    "jsonschema>=4.23",
     "charter-kit-core",
     "charter-kit-cli",
 ]
@@ -79,18 +84,36 @@ warn_unreachable = true
 warn_unused_configs = true
 enable_error_code = ["redundant-expr", "truthy-bool", "ignore-without-code"]
 plugins = ["pydantic.mypy"]
-files = ["packages/core/src", "packages/cli/src"]
+files = ["packages/core/src", "packages/cli/src", "packages/core/tests"]
 
 [[tool.mypy.overrides]]
-module = ["tests.*", "conftest"]
+# Test helpers (fixtures, small builders like `ctx()`/`result()`) are
+# deliberately left untyped, or partially typed, for brevity; the tests
+# themselves still get every other strict check, including verifying the
+# reference port fakes in test_contract_smoke.py actually satisfy their
+# Protocols. disallow_untyped_calls and disallow_incomplete_defs are relaxed
+# alongside disallow_untyped_defs because a fully-typed test calling a
+# deliberately-loose local helper would otherwise still fail.
+module = ["tests.*"]
 disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+
+[[tool.mypy.overrides]]
+# No inline type stubs published; the runtime behavior is what these tests
+# verify against, not its type surface.
+module = ["jsonschema", "jsonschema.*"]
+ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------
 # pytest
 # ---------------------------------------------------------------------------
 [tool.pytest.ini_options]
 minversion = "8.0"
-testpaths = ["packages/core/tests", "packages/cli/tests", "packages/mcp/tests"]
+# Only what exists today. packages/cli/tests and packages/mcp/tests will be
+# added back here as part of the work package that creates them -- an
+# already-listed-but-absent path is dead configuration, not forward planning.
+testpaths = ["packages/core/tests"]
 addopts = "-ra --strict-markers --strict-config"
 markers = [
     "req(id): the SPEC requirement id this test provides coverage for",

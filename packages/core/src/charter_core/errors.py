@@ -230,7 +230,7 @@ class CK(Enum):
         remediation="Commit the event; uncommitted ledger files cannot be ratified.",
         exit_code=_ENVIRONMENT,
     )
-    E0403_PROVISIONAL_PROVENANCE = ErrorDef(
+    W0403_PROVISIONAL_PROVENANCE = ErrorDef(
         code="CK-W0403",
         title="Provenance derived off the default branch is provisional",
         severity=Severity.WARNING,

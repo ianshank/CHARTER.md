@@ -111,11 +111,19 @@ dependencies = [
     { name = "ruamel-yaml" },
 ]
 
+[package.dev-dependencies]
+test = [
+    { name = "jsonschema" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2.9,<3" },
     { name = "ruamel-yaml", specifier = ">=0.18,<0.19" },
 ]
+
+[package.metadata.requires-dev]
+test = [{ name = "jsonschema", specifier = ">=4.23" }]
 
 [[package]]
 name = "charter-kit-workspace"
@@ -129,6 +137,7 @@ dev = [
     { name = "deptry" },
     { name = "hypothesis" },
     { name = "import-linter" },
+    { name = "jsonschema" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-cov" },
@@ -145,6 +154,7 @@ dev = [
     { name = "deptry", specifier = ">=0.21" },
     { name = "hypothesis", specifier = ">=6.120" },
     { name = "import-linter", specifier = ">=2.1" },
+    { name = "jsonschema", specifier = ">=4.23" },
     { name = "mypy", specifier = ">=1.13" },
     { name = "pytest", specifier = ">=8.3" },
     { name = "pytest-cov", specifier = ">=6.0" },
