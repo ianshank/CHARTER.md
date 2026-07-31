@@ -20,7 +20,7 @@
         "min_approvals": {
           "anyOf": [
             {
-              "minimum": 0,
+              "ge": 0,
               "type": "integer"
             },
             {
@@ -72,8 +72,8 @@
         "cumulative_ratio": {
           "anyOf": [
             {
-              "exclusiveMinimum": 0,
-              "maximum": 1,
+              "gt": 0,
+              "le": 1,
               "type": "number"
             },
             {
@@ -85,7 +85,7 @@
         "default_carveout_budget": {
           "anyOf": [
             {
-              "minimum": 0,
+              "ge": 0,
               "type": "integer"
             },
             {
@@ -97,7 +97,7 @@
         "density_threshold": {
           "anyOf": [
             {
-              "minimum": 1,
+              "ge": 1,
               "type": "integer"
             },
             {
@@ -109,7 +109,7 @@
         "density_window_days": {
           "anyOf": [
             {
-              "minimum": 1,
+              "ge": 1,
               "type": "integer"
             },
             {
@@ -165,7 +165,7 @@
         "budget": {
           "anyOf": [
             {
-              "minimum": 0,
+              "ge": 0,
               "type": "integer"
             },
             {
@@ -176,12 +176,13 @@
           "description": "Concurrent carve-outs permitted. Falls back to config, profile, schema."
         },
         "id": {
-          "pattern": "^NG-[1-9][0-9]*$",
+          "pattern": "^NG-[1-9][0-9]*(?![\\s\\S])",
           "type": "string"
         },
         "rationale": {
           "description": "Why this boundary exists.",
           "minLength": 8,
+          "pattern": "\\S",
           "type": "string"
         },
         "status": {
@@ -195,6 +196,7 @@
         "text": {
           "description": "The boundary, stated as a negative capability.",
           "minLength": 8,
+          "pattern": "\\S",
           "type": "string"
         }
       },
@@ -224,7 +226,7 @@
     },
     "charter_version": {
       "description": "Semver of this charter's own content.",
-      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?![\\s\\S])",
       "type": "string"
     },
     "config": {
@@ -256,7 +258,7 @@
     },
     "spec_version": {
       "description": "The charter-kit SPEC version this targets.",
-      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?![\\s\\S])",
       "type": "string"
     },
     "status": {

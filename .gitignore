@@ -11,3 +11,4 @@ htmlcov/
 .ruff_cache/
 .pytest_cache/
 docs/_build/
+.import_linter_cache/

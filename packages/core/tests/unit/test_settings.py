@@ -13,7 +13,10 @@ import pytest
 
 from charter_core.profiles import PROFILES, get_profile
 from charter_core.settings import (
+    APPROVAL_POLICY_KEYS,
+    CONFIG_KEYS,
     SCHEMA_DEFAULTS,
+    SETTING_SPECS,
     SettingSource,
     parse_ratio,
     resolve_settings,
@@ -145,3 +148,47 @@ def test_schema_defaults_cover_every_tunable() -> None:
     """The schema-default layer is the floor; a gap would be a KeyError at runtime."""
     for key in TUNABLES:
         assert key in SCHEMA_DEFAULTS
+
+
+class TestSettingSpecsAreTheSingleSourceOfTruth:
+    """The table SCHEMA_DEFAULTS, resolve_settings, and the schema stamper derive from.
+
+    The one place that cannot derive from it automatically -- the pydantic
+    field declarations, which need real type annotations -- is cross-checked
+    here instead, so a key added to one side and not the other fails a test
+    rather than drifting silently.
+    """
+
+    def test_no_duplicate_keys(self) -> None:
+        keys = [spec.key for spec in SETTING_SPECS]
+        assert len(keys) == len(set(keys))
+
+    def test_group_partition_is_exhaustive_and_disjoint(self) -> None:
+        assert set() == CONFIG_KEYS & APPROVAL_POLICY_KEYS
+        assert {spec.key for spec in SETTING_SPECS} == CONFIG_KEYS | APPROVAL_POLICY_KEYS
+
+    def test_config_block_declares_exactly_the_config_group(self) -> None:
+        from charter_core.models.charter import ConfigBlock
+
+        declared = set(ConfigBlock.model_fields) - {"approval_policy"}
+        assert declared == CONFIG_KEYS, (
+            f"ConfigBlock and SETTING_SPECS disagree: "
+            f"only in model={declared - CONFIG_KEYS} only in table={CONFIG_KEYS - declared}"
+        )
+
+    def test_approval_policy_config_declares_exactly_the_approval_group(self) -> None:
+        from charter_core.models.charter import ApprovalPolicyConfig
+
+        declared = set(ApprovalPolicyConfig.model_fields)
+        assert declared == APPROVAL_POLICY_KEYS, (
+            f"ApprovalPolicyConfig and SETTING_SPECS disagree: "
+            f"only in model={declared - APPROVAL_POLICY_KEYS} "
+            f"only in table={APPROVAL_POLICY_KEYS - declared}"
+        )
+
+    def test_schema_default_is_json_safe(self) -> None:
+        """The published schema must never leak the internal string encoding."""
+        for spec in SETTING_SPECS:
+            assert not (spec.key == "cumulative_ratio" and isinstance(spec.schema_default, str)), (
+                "cumulative_ratio's schema_default must be a JSON number, not the decimal string"
+            )

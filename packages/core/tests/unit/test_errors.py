@@ -140,6 +140,44 @@ class TestWorstExitCode:
         bag.add(CK.E0401_SHALLOW_CLONE)
         assert worst_exit_code(bag.items()) == ExitCode.ENVIRONMENT
 
+    def test_precedence_is_declared_not_derived_from_the_numbers(self) -> None:
+        """Order must come from the precedence table, not numeric comparison.
+
+        These two happen to rank the same either way; the point is that the
+        rule is stated. The next case is the one that proves it.
+        """
+        bag = DiagnosticBag()
+        bag.add(CK.E0201_DERIVED_VALUE_STORED)  # 3, could not read the documents
+        bag.add(CK.E0701_PATH_CLOSED)  # 1, read them and found a violation
+        assert worst_exit_code(bag.items()) == ExitCode.INPUT_INVALID
+
+    def test_could_not_conclude_outranks_concluded(self) -> None:
+        """The rule: a failure that stopped the engine outranks one it reached."""
+        bag = DiagnosticBag()
+        bag.add(CK.E0701_PATH_CLOSED)  # a real verdict
+        bag.add(CK.E0101_SPEC_MAJOR_UNSUPPORTED)  # no verdict was possible
+        assert worst_exit_code(bag.items()) == ExitCode.SPEC_UNSUPPORTED
+
+    def test_order_of_diagnostics_does_not_change_the_exit_code(self) -> None:
+        """Aggregation is over a set, not a sequence; CI must be reproducible."""
+        first = DiagnosticBag()
+        first.add(CK.E0401_SHALLOW_CLONE)
+        first.add(CK.E0701_PATH_CLOSED)
+        second = DiagnosticBag()
+        second.add(CK.E0701_PATH_CLOSED)
+        second.add(CK.E0401_SHALLOW_CLONE)
+        assert worst_exit_code(first.items()) == worst_exit_code(second.items())
+
+    def test_every_failing_registry_code_has_a_declared_precedence(self) -> None:
+        """An unranked code would sort last and could mask a real blocker."""
+        from charter_core.diagnostics import _EXIT_CODE_PRECEDENCE
+
+        for member in CK:
+            if member.exit_code != ExitCode.OK:
+                assert member.exit_code in _EXIT_CODE_PRECEDENCE, (
+                    f"{member.name} exits {member.exit_code} with no declared precedence"
+                )
+
 
 def test_diagnostic_of_is_frozen() -> None:
     diagnostic = Diagnostic.of(CK.E0701_PATH_CLOSED)

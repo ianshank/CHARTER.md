@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Self
+from typing import Any, Final, Self
 
 from charter_core.errors import CK, Severity
 
@@ -115,20 +115,49 @@ class DiagnosticBag:
         return len(self._items)
 
 
+#: Exit-code precedence, most severe first.
+#:
+#: Declared explicitly rather than derived by ``max()`` over the numeric codes.
+#: Numeric ordering happens to rank these correctly today, but only by accident
+#: of how the values were assigned -- ``INTERNAL`` (70) and ``INTERRUPTED``
+#: (130) outrank everything by number alone, and any future code would silently
+#: take a precedence nobody chose. The rule this encodes: a failure that stopped
+#: the engine from reaching a conclusion outranks a conclusion it did reach.
+_EXIT_CODE_PRECEDENCE: Final[tuple[int, ...]] = (
+    70,  # INTERNAL          -- the engine broke; nothing else can be trusted
+    5,  # SPEC_UNSUPPORTED   -- semantics unknown, so no verdict is meaningful
+    4,  # ENVIRONMENT        -- could not read the repository
+    3,  # INPUT_INVALID      -- could not read the documents
+    2,  # USAGE              -- could not read the invocation
+    1,  # VIOLATION          -- read everything, and it violates the charter
+)
+
+
 def worst_exit_code(diagnostics: Sequence[Diagnostic], *, fail_on_warning: bool = False) -> int:
     """Resolve a set of diagnostics to a single process exit code.
 
-    The highest-severity finding wins; ties resolve to the first occurrence so
-    that the exit code matches the first thing a reader sees in the log.
+    The most severe finding wins, by the precedence in
+    :data:`_EXIT_CODE_PRECEDENCE` rather than by numeric comparison. An
+    unrecognised code sorts last, so an unmapped diagnostic degrades to
+    "something failed" instead of silently outranking a real blocker.
     """
     from charter_core.errors import REGISTRY
 
-    candidates = [
+    codes = [
         REGISTRY[d.code].exit_code
         for d in diagnostics
         if d.severity is Severity.ERROR or (fail_on_warning and d.severity is Severity.WARNING)
     ]
-    non_zero = [code for code in candidates if code != 0]
-    if not non_zero:
-        return 1 if (fail_on_warning and candidates) else 0
-    return max(non_zero)
+    failing = [code for code in codes if code != 0]
+    if not failing:
+        # Warnings map to exit 0 individually; --fail-on warning turns the
+        # presence of any of them into a violation.
+        return 1 if (fail_on_warning and codes) else 0
+
+    def rank(code: int) -> int:
+        try:
+            return _EXIT_CODE_PRECEDENCE.index(code)
+        except ValueError:
+            return len(_EXIT_CODE_PRECEDENCE)
+
+    return min(failing, key=rank)

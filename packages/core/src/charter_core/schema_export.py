@@ -63,6 +63,17 @@ def _normalise(node: Any, *, keys_are_names: bool = False) -> Any:
     return node
 
 
+#: Which ``$defs`` model publishes each settings group. A key not appearing in
+#: its group's properties is a model/table drift that
+#: ``test_settings_key_sets_agree`` (in ``tests/unit/test_settings.py``) would
+#: already have failed on, so silently skipping it here is safe -- this stamp
+#: is presentation, not the source of truth for what is valid.
+_SCHEMA_BLOCK_BY_GROUP: Final[dict[str, str]] = {
+    "config": "ConfigBlock",
+    "approval_policy": "ApprovalPolicyConfig",
+}
+
+
 def _stamp_effective_defaults(schema: dict[str, Any]) -> dict[str, Any]:
     """Publish the real fallback values on the config block.
 
@@ -73,43 +84,17 @@ def _stamp_effective_defaults(schema: dict[str, Any]) -> dict[str, Any]:
     behaviour, so stamping the effective value here makes the published schema
     self-documenting without changing what validates.
 
-    The values come from ``settings.SCHEMA_DEFAULTS``, which stays the single
-    source of truth for both the engine and the schema.
+    Driven by :data:`charter_core.settings.SETTING_SPECS`, the single
+    declarative table every tunable is added to exactly once.
     """
-    from charter_core.settings import SCHEMA_DEFAULTS
+    from charter_core.settings import SETTING_SPECS
 
     defs = schema.get("$defs", {})
-    for block, keys in (
-        (
-            "ConfigBlock",
-            (
-                "density_window_days",
-                "density_threshold",
-                "cumulative_ratio",
-                "default_carveout_budget",
-                "window_boundary",
-                "require_review_artifact",
-                "ledger_pr_isolation",
-            ),
-        ),
-        (
-            "ApprovalPolicyConfig",
-            (
-                "min_approvals",
-                "require_code_owner",
-                "distinct_from_author",
-                "self_ratification_allowed",
-            ),
-        ),
-    ):
+    for spec in SETTING_SPECS:
+        block = _SCHEMA_BLOCK_BY_GROUP[spec.group]
         properties = defs.get(block, {}).get("properties", {})
-        for key in keys:
-            if key not in properties or key not in SCHEMA_DEFAULTS:
-                continue
-            raw = SCHEMA_DEFAULTS[key]
-            # cumulative_ratio is stored as a decimal string for exact parsing;
-            # publish it as the JSON number an adopter would actually write.
-            properties[key]["default"] = float(raw) if key == "cumulative_ratio" else raw
+        if spec.key in properties:
+            properties[spec.key]["default"] = spec.schema_default
     return schema
 
 

@@ -13,7 +13,7 @@ from enum import StrEnum
 from fractions import Fraction
 
 from charter_core.ids import LedgerPath
-from charter_core.models.events import LedgerEvent
+from charter_core.models.events import EventKind, LedgerEvent
 from charter_core.ports import Provenance
 
 
@@ -147,6 +147,37 @@ class LedgerState:
             for c in self.carveouts.values()
             if c.non_goal == non_goal_id and c.counts_toward_level
         )
+
+    def find(self, event_key: str) -> ResolvedEvent | None:
+        """The ordered event with this canonical key, if any."""
+        return next((e for e in self.ordered if e.event_key == event_key), None)
+
+    def status_of(self, resolved: ResolvedEvent) -> str | None:
+        """The derived lifecycle status of a carve-out or review event.
+
+        ``None`` for event kinds with no lifecycle of their own (a correction,
+        or a lifecycle event whose origin failed integrity and so was never
+        projected).
+        """
+        kind = resolved.event.event_type
+        if kind in (
+            EventKind.CARVEOUT_RATIFIED,
+            EventKind.CARVEOUT_RETIRED,
+            EventKind.CARVEOUT_EXPIRED,
+        ):
+            carveout = self.carveouts.get(resolved.event.id)
+            return carveout.status.value if carveout else None
+        if kind in (EventKind.REVIEW_OPENED, EventKind.REVIEW_CLOSED):
+            review = self.reviews.get(resolved.event.id)
+            return review.status.value if review else None
+        return None
+
+    def historical_of(self, resolved: ResolvedEvent) -> bool:
+        """Whether a ratification predates the genesis marker (A11)."""
+        if resolved.event.event_type != EventKind.CARVEOUT_RATIFIED:
+            return False
+        carveout = self.carveouts.get(resolved.event.id)
+        return carveout.historical if carveout else False
 
 
 class Closure(StrEnum):

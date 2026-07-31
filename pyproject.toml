@@ -8,8 +8,8 @@ requires-python = ">=3.11"
 members = ["packages/*"]
 
 [tool.uv.sources]
-charter-core = { workspace = true }
-charter-cli = { workspace = true }
+charter-kit-core = { workspace = true }
+charter-kit-cli = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -21,8 +21,8 @@ dev = [
     "import-linter>=2.1",
     "deptry>=0.21",
     "vulture>=2.13",
-    "charter-core",
-    "charter-cli",
+    "charter-kit-core",
+    "charter-kit-cli",
 ]
 
 # ---------------------------------------------------------------------------
@@ -59,15 +59,15 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["S101", "D100", "D101", "D102", "D103", "D104", "PTH"]
+"**/tests/**" = ["S101", "S311", "D100", "D101", "D102", "D103", "D104", "PTH", "TID252"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
-# charter-core purity: enforced structurally by import-linter, and at the
+# charter_core purity: enforced structurally by import-linter, and at the
 # call level by the AST scan in tests/architecture/test_core_purity.py.
-"subprocess".msg = "charter-core is pure; run processes from the CLI adapters."
+"subprocess".msg = "charter_core is pure; run processes from the CLI adapters."
 
 # ---------------------------------------------------------------------------
 # mypy
