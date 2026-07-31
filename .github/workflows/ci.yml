@@ -3,7 +3,14 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    # pull_request already runs every job against every target branch
+    # unconditionally; this only re-validates the commit that actually
+    # lands on a protected branch. All jobs run uniformly across all three
+    # -- which ones block a merge is a branch-protection concern (see
+    # BRANCHING.md's required-checks tables), not a workflow-trigger one,
+    # so there's one source of truth for "required" instead of two that
+    # can drift.
+    branches: [main, qa, dev]
 
 # Least privilege by default. Jobs that need more must say so explicitly.
 permissions:

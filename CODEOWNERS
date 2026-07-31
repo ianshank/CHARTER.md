@@ -1,0 +1,9 @@
+# Single maintainer today -- every path resolves to the same owner. Scoped
+# by area anyway so a second maintainer can take one area over by editing
+# one line here, not by restructuring this file.
+*                 @ianshank
+
+/packages/core/   @ianshank
+/packages/cli/    @ianshank
+/.github/         @ianshank
+/schema/          @ianshank
