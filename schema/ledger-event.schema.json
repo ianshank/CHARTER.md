@@ -1,0 +1,561 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://charter-kit.dev/schema/0.1/ledger-event.schema.json",
+  "$defs": {
+    "ActorModel": {
+      "additionalProperties": false,
+      "description": "Who performed an action, as both identity and role.\n\nBoth are required: a role alone cannot support an audit trail, and a bare\nidentity cannot express policy.",
+      "properties": {
+        "identity": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "role": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "identity",
+        "role"
+      ],
+      "type": "object"
+    },
+    "CarveOutExpired": {
+      "additionalProperties": false,
+      "description": "A carve-out's expiry condition was attested as met.",
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/ActorModel",
+          "description": "Who authored this event."
+        },
+        "basis": {
+          "$ref": "#/$defs/ExpiryBasis"
+        },
+        "event_type": {
+          "const": "carveout.expired",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^CO-[1-9][0-9]*$",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free-text context for humans."
+        },
+        "reason": {
+          "minLength": 8,
+          "type": "string"
+        },
+        "spec_version": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The spec version this event was authored against, when it differs."
+        }
+      },
+      "required": [
+        "actor",
+        "event_type",
+        "id",
+        "basis",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "CarveOutRatified": {
+      "additionalProperties": false,
+      "description": "A carve-out was ratified against a non-goal.",
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/ActorModel",
+          "description": "Who authored this event."
+        },
+        "constraints": {
+          "$ref": "#/$defs/Constraints"
+        },
+        "event_type": {
+          "const": "carveout.ratified",
+          "type": "string"
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Declared expiry. A statement about the future, so storing it is legal."
+        },
+        "id": {
+          "pattern": "^CO-[1-9][0-9]*$",
+          "type": "string"
+        },
+        "non_goal": {
+          "pattern": "^NG-[1-9][0-9]*$",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free-text context for humans."
+        },
+        "ratifiers": {
+          "items": {
+            "$ref": "#/$defs/ActorModel"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "self_ratified": {
+          "default": false,
+          "description": "Visible, never hidden. Permitted only under the lite profile.",
+          "type": "boolean"
+        },
+        "spec_version": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The spec version this event was authored against, when it differs."
+        },
+        "title": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "actor",
+        "event_type",
+        "id",
+        "non_goal",
+        "title",
+        "constraints",
+        "ratifiers"
+      ],
+      "type": "object"
+    },
+    "CarveOutRetired": {
+      "additionalProperties": false,
+      "description": "A carve-out was deliberately withdrawn.",
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/ActorModel",
+          "description": "Who authored this event."
+        },
+        "event_type": {
+          "const": "carveout.retired",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^CO-[1-9][0-9]*$",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free-text context for humans."
+        },
+        "reason": {
+          "minLength": 8,
+          "type": "string"
+        },
+        "spec_version": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The spec version this event was authored against, when it differs."
+        }
+      },
+      "required": [
+        "actor",
+        "event_type",
+        "id",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "Constraints": {
+      "additionalProperties": false,
+      "description": "The four constraints that make a carve-out bounded.\n\nModelled as required, substantive fields rather than a list of labels: a\nlist would let the gate verify four words are present and call it\ncompleteness, which is checkbox theatre.",
+      "properties": {
+        "bounding": {
+          "description": "What the carve-out does and does not reach.",
+          "minLength": 24,
+          "type": "string"
+        },
+        "mechanism": {
+          "description": "How it is implemented and who owns it.",
+          "minLength": 24,
+          "type": "string"
+        },
+        "safety": {
+          "description": "What prevents it causing harm, and how that is verified.",
+          "minLength": 24,
+          "type": "string"
+        },
+        "sequencing": {
+          "description": "When it expires or what supersedes it.",
+          "minLength": 24,
+          "type": "string"
+        }
+      },
+      "required": [
+        "bounding",
+        "mechanism",
+        "safety",
+        "sequencing"
+      ],
+      "type": "object"
+    },
+    "Correction": {
+      "additionalProperties": false,
+      "description": "A correction to an earlier event.\n\nCorrections are how mistakes are fixed under an append-only ledger: a new\nfile referencing the old one, never an edit.",
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/ActorModel",
+          "description": "Who authored this event."
+        },
+        "corrects": {
+          "$ref": "#/$defs/CorrectionTarget"
+        },
+        "event_type": {
+          "const": "correction",
+          "type": "string"
+        },
+        "fields": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Replacement values, for supersede corrections only."
+        },
+        "id": {
+          "pattern": "^CR-[1-9][0-9]*$",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/CorrectionKind"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free-text context for humans."
+        },
+        "reason": {
+          "minLength": 8,
+          "type": "string"
+        },
+        "spec_version": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The spec version this event was authored against, when it differs."
+        }
+      },
+      "required": [
+        "actor",
+        "event_type",
+        "id",
+        "corrects",
+        "kind",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "CorrectionKind": {
+      "description": "What a correction does to the event it targets.",
+      "enum": [
+        "supersede",
+        "annotate"
+      ],
+      "type": "string"
+    },
+    "CorrectionTarget": {
+      "additionalProperties": false,
+      "description": "The event a correction refers to.",
+      "properties": {
+        "event_key": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_key"
+      ],
+      "type": "object"
+    },
+    "ExpiryBasis": {
+      "description": "Why a carve-out expired.",
+      "enum": [
+        "condition_met",
+        "superseded"
+      ],
+      "type": "string"
+    },
+    "ReviewClosed": {
+      "additionalProperties": false,
+      "description": "A charter review was closed by a human.\n\nScope is *not* restated here; it is derived from the matching\n``review.opened``, so the two can never disagree.",
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/ActorModel",
+          "description": "Who authored this event."
+        },
+        "artifact": {
+          "pattern": "^reviews/[A-Za-z0-9._/-]+\\.md$",
+          "type": "string"
+        },
+        "closed_by": {
+          "items": {
+            "$ref": "#/$defs/ActorModel"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "event_type": {
+          "const": "review.closed",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^RV-[1-9][0-9]*$",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free-text context for humans."
+        },
+        "outcome": {
+          "$ref": "#/$defs/ReviewOutcome"
+        },
+        "spec_version": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The spec version this event was authored against, when it differs."
+        }
+      },
+      "required": [
+        "actor",
+        "event_type",
+        "id",
+        "outcome",
+        "closed_by",
+        "artifact"
+      ],
+      "type": "object"
+    },
+    "ReviewOpened": {
+      "additionalProperties": false,
+      "description": "A charter review was opened, blocking ratification while it stands.",
+      "properties": {
+        "actor": {
+          "$ref": "#/$defs/ActorModel",
+          "description": "Who authored this event."
+        },
+        "artifact": {
+          "pattern": "^reviews/[A-Za-z0-9._/-]+\\.md$",
+          "type": "string"
+        },
+        "event_type": {
+          "const": "review.opened",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^RV-[1-9][0-9]*$",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free-text context for humans."
+        },
+        "scope": {
+          "$ref": "#/$defs/ReviewScope"
+        },
+        "spec_version": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The spec version this event was authored against, when it differs."
+        },
+        "trigger": {
+          "$ref": "#/$defs/ReviewTrigger"
+        }
+      },
+      "required": [
+        "actor",
+        "event_type",
+        "id",
+        "trigger",
+        "scope",
+        "artifact"
+      ],
+      "type": "object"
+    },
+    "ReviewOutcome": {
+      "description": "How a review resolved.",
+      "enum": [
+        "upheld",
+        "amended",
+        "expanded"
+      ],
+      "type": "string"
+    },
+    "ReviewScope": {
+      "additionalProperties": false,
+      "description": "What a review covers.\n\nExactly one of ``global_`` or a non-empty ``non_goals`` list, so the scope a\nclosure reopens is never ambiguous.",
+      "properties": {
+        "global": {
+          "default": false,
+          "type": "boolean"
+        },
+        "non_goals": {
+          "default": [],
+          "items": {
+            "pattern": "^NG-[1-9][0-9]*$",
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "ReviewTrigger": {
+      "description": "What caused a review to be opened.",
+      "enum": [
+        "per_id",
+        "density",
+        "cumulative",
+        "voluntary"
+      ],
+      "type": "string"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "carveout.expired": "#/$defs/CarveOutExpired",
+      "carveout.ratified": "#/$defs/CarveOutRatified",
+      "carveout.retired": "#/$defs/CarveOutRetired",
+      "correction": "#/$defs/Correction",
+      "review.closed": "#/$defs/ReviewClosed",
+      "review.opened": "#/$defs/ReviewOpened"
+    },
+    "propertyName": "event_type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/CarveOutRatified"
+    },
+    {
+      "$ref": "#/$defs/CarveOutRetired"
+    },
+    {
+      "$ref": "#/$defs/CarveOutExpired"
+    },
+    {
+      "$ref": "#/$defs/ReviewOpened"
+    },
+    {
+      "$ref": "#/$defs/ReviewClosed"
+    },
+    {
+      "$ref": "#/$defs/Correction"
+    }
+  ]
+}

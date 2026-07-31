@@ -1,0 +1,27 @@
+[project]
+name = "charter-cli"
+version = "0.1.0"
+description = "Command-line interface and git/filesystem adapters for charter-kit."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+# charter-core is declared as a real versioned dependency, not only as a
+# workspace source: [tool.uv.sources] is stripped at build time, so without
+# this the published wheel would be uninstallable.
+dependencies = [
+    "charter-core==0.1.0",
+    "typer>=0.15",
+    "rich>=13.9",
+    "structlog>=24.4",
+    "jsonschema>=4.23",
+]
+
+[project.scripts]
+charter = "charter_cli.main:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/charter_cli"]
