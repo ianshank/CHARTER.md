@@ -110,6 +110,26 @@ class TestCorrections:
         bag = check(correction(target="CO-99.ratified"))
         assert [d.code for d in bag] == ["CK-E0505"]
 
+    @pytest.mark.req("REQ-INTEG-005")
+    def test_correction_targeting_a_not_yet_occurred_event_is_unknown(self) -> None:
+        """A correction can only annotate the past.
+
+        The target-existence check walks the total order and only ever knows
+        about events at or before the correction's own position in it -- a
+        correction whose target sorts *later* is indistinguishable from one
+        whose target does not exist at all, and reports the same CK-E0505.
+        That is intentional: an append-only ledger has no notion of
+        correcting something that has not happened yet, so treating "exists,
+        but in the future" as "unknown" is the correct outcome even though the
+        referenced event key is technically present elsewhere in the ledger.
+        """
+        events = [
+            correction(target="CO-1.ratified", at=T(0)),
+            ratified(at=T(1)),
+        ]
+        bag = check(*events)
+        assert [d.code for d in bag] == ["CK-E0505"]
+
     @pytest.mark.req("REQ-LEDGER-009")
     def test_correction_targeting_another_correction_is_a_chain(self) -> None:
         bag = check(

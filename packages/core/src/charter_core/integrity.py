@@ -50,6 +50,12 @@ def check_integrity(charter: Charter, events: tuple[ResolvedEvent, ...]) -> Diag
         event = resolved.event
         location = Location(path=resolved.path, event_key=resolved.event_key)
         event_keys_seen[resolved.event_key].append(resolved.path)
+        # Deliberately incremental: a correction's target-existence check
+        # below only ever sees events at or before its own position in the
+        # total order, so a correction referencing something later reports
+        # the same E0505 as one referencing nothing real. An append-only
+        # ledger has no notion of correcting the future -- see
+        # test_correction_targeting_a_not_yet_occurred_event_is_unknown.
         all_event_keys.add(resolved.event_key)
 
         if event.event_type == EventKind.CARVEOUT_RATIFIED:

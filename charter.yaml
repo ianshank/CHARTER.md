@@ -1,0 +1,44 @@
+# charter-kit's own charter -- dogfooding the format it defines.
+#
+# status: draft, because there is no ratification process to have run this
+# through yet (that's the CLI's job, and the CLI doesn't exist -- see
+# NEXTSTEPS.md). Draft caps the conformance claim at CL-2 and relaxes
+# trigger-based blocking, but every structural check in this document still
+# applies -- validated by packages/core/tests/unit/test_own_charter.py
+# against the real Charter model, the same one every adopter's charter.yaml
+# is checked against.
+#
+# profile: lite, because this is presently a single-maintainer project.
+spec_version: "0.1.0"
+charter_version: "1.0.0"
+status: draft
+profile: lite
+adopted_at: "2026-07-31T00:00:00Z"
+
+non_goals:
+  - id: NG-1
+    text: >-
+      The system does not target platforms other than GitHub in v1 --
+      no GitLab, Bitbucket, or generic git-forge support.
+    rationale: >-
+      Provenance derivation is built around GitHub's specific commit and
+      pull-request model (--first-parent history, PR-to-commit resolution
+      via the GitHub API). Generalizing that abstraction correctly requires
+      a second real integration to design against, not speculation about
+      what a second forge might need.
+    status: active
+    budget: 1
+
+  - id: NG-2
+    text: >-
+      The system does not build the MCP server, OpenSpec or Copilot
+      adapters, or an enterprise profile beyond what
+      packages/core/src/charter_core/profiles.py already defines.
+    rationale: >-
+      Each of those is a real surface with its own design questions, and
+      building them before the core gate has a single external adopter
+      risks polishing infrastructure nobody has validated needs polishing.
+      The scope gate: these stay unbuilt until at least one repository
+      other than this one runs the gate as a required check.
+    status: active
+    budget: 1

@@ -1,0 +1,49 @@
+# Local pre-PR validation, so the CI gate isn't the first line of defense.
+# Install with `uv run pre-commit install`; run on demand with
+# `uv run pre-commit run --all-files`. Versions here are a starting point --
+# run `pre-commit autoupdate` periodically to pick up newer hook releases.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=512"]
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Pinned to match the ruff version this workspace actually resolves
+    # (`ruff>=0.8` currently lands on 0.16.x) -- a mismatched hook version
+    # reformats differently than `ruff format --check` and fights CI on every
+    # commit. Bump this alongside the project's own ruff version, not
+    # independently.
+    rev: v0.16.1
+    hooks:
+      - id: ruff
+        args: ["--fix", "--exit-non-zero-on-fix"]
+      - id: ruff-format
+
+  # mypy needs the project's own environment (pydantic plugin, the workspace
+  # packages) rather than an isolated hook environment, so this runs through
+  # `uv run` directly instead of the mirrors-mypy repo.
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy --strict
+        entry: uv run mypy
+        language: system
+        pass_filenames: false
+        types: [python]
+
+      - id: import-linter
+        name: import-linter (core purity)
+        entry: uv run lint-imports
+        language: system
+        pass_filenames: false
+        types: [python]
