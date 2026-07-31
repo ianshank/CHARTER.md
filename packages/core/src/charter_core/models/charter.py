@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from typing import Annotated, Final, Literal
 
-from pydantic import AwareDatetime, Field, field_validator, model_validator
+from pydantic import AwareDatetime, Field, field_validator
 
 from charter_core.models.common import (
     DocFloat,
@@ -24,7 +24,6 @@ from charter_core.models.common import (
     Prose,
     SemVerStr,
     StrictBool,
-    StrictModel,
     UtcModel,
 )
 from charter_core.settings import SCHEMA_DEFAULTS
@@ -40,10 +39,6 @@ FORBIDDEN_DERIVED_FIELDS: Final[dict[str, str]] = {
     "commit": "Derived from repository history; remove this field.",
     "pr": "Derived from repository history; remove this field.",
 }
-
-
-class CharterStatus(StrictModel):
-    """Placeholder namespace kept for symmetry; status is a plain literal."""
 
 
 class NonGoal(UtcModel):
@@ -118,12 +113,6 @@ class Charter(UtcModel):
                 raise ValueError(f"Duplicate non-goal id: {non_goal.id}")
             seen.add(non_goal.id)
         return value
-
-    @model_validator(mode="after")
-    def _draft_caps_conformance(self) -> Charter:
-        # Recorded here rather than enforced: the conformance level is computed
-        # by the gate, which has the repository settings this model does not.
-        return self
 
     @property
     def active_non_goals(self) -> tuple[NonGoal, ...]:
