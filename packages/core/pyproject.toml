@@ -1,5 +1,5 @@
 [project]
-name = "charter-core"
+name = "charter-kit-core"
 version = "0.1.0"
 description = "Pure evaluation engine for the charter-kit governance standard."
 readme = "README.md"

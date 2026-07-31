@@ -8,8 +8,8 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "charter-cli",
-    "charter-core",
+    "charter-kit-cli",
+    "charter-kit-core",
     "charter-kit-workspace",
 ]
 
@@ -82,11 +82,11 @@ wheels = [
 ]
 
 [[package]]
-name = "charter-cli"
+name = "charter-kit-cli"
 version = "0.1.0"
 source = { editable = "packages/cli" }
 dependencies = [
-    { name = "charter-core" },
+    { name = "charter-kit-core" },
     { name = "jsonschema" },
     { name = "rich" },
     { name = "structlog" },
@@ -95,7 +95,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "charter-core", editable = "packages/core" },
+    { name = "charter-kit-core", editable = "packages/core" },
     { name = "jsonschema", specifier = ">=4.23" },
     { name = "rich", specifier = ">=13.9" },
     { name = "structlog", specifier = ">=24.4" },
@@ -103,7 +103,7 @@ requires-dist = [
 ]
 
 [[package]]
-name = "charter-core"
+name = "charter-kit-core"
 version = "0.1.0"
 source = { editable = "packages/core" }
 dependencies = [
@@ -124,8 +124,8 @@ source = { virtual = "." }
 
 [package.dev-dependencies]
 dev = [
-    { name = "charter-cli" },
-    { name = "charter-core" },
+    { name = "charter-kit-cli" },
+    { name = "charter-kit-core" },
     { name = "deptry" },
     { name = "hypothesis" },
     { name = "import-linter" },
@@ -140,8 +140,8 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "charter-cli", editable = "packages/cli" },
-    { name = "charter-core", editable = "packages/core" },
+    { name = "charter-kit-cli", editable = "packages/cli" },
+    { name = "charter-kit-core", editable = "packages/core" },
     { name = "deptry", specifier = ">=0.21" },
     { name = "hypothesis", specifier = ">=6.120" },
     { name = "import-linter", specifier = ">=2.1" },

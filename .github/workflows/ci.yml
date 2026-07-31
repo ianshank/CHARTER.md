@@ -101,19 +101,34 @@ jobs:
       - name: Build both distributions
         run: uv build --all-packages --out-dir dist/
       - name: Install into a clean venv with no workspace present
-        # [tool.uv.sources] is stripped at build time, so this is what proves
-        # charter-cli's wheel declares charter-core as a real versioned
-        # dependency rather than a workspace path. Resolution goes through
-        # --find-links because neither distribution is published yet; the
-        # metadata under test is the same either way.
+        # [tool.uv.sources] is stripped at build time, so this proves the
+        # charter-kit-cli wheel declares charter-kit-core as a real versioned
+        # dependency rather than a workspace path.
+        #
+        # Install by explicit wheel path, never by name. `charter-core` and
+        # `charter-cli` are real, unrelated packages on PyPI, so resolving our
+        # distributions by name would let a stranger's release satisfy this job
+        # and still go green.
         run: |
           mkdir -p /tmp/clean && cd /tmp/clean
           uv venv
-          uv pip install --no-cache --find-links "$GITHUB_WORKSPACE/dist" charter-cli
+          uv pip install --no-cache "$GITHUB_WORKSPACE"/dist/charter_kit_core-*.whl \
+                                    "$GITHUB_WORKSPACE"/dist/charter_kit_cli-*.whl
           # Invoke the venv interpreter directly: `uv run` outside a project
           # would try to resolve one, which is the opposite of the isolation
           # this job exists to prove.
-          .venv/bin/python -c 'import charter_cli, charter_core; from charter_core.schema_export import SCHEMAS; print("installed charter-core", charter_core.__version__, sorted(SCHEMAS))'
-          # The `charter` console script is declared but not yet runnable: its
-          # entry point is charter_cli.main:app, which WP-3 adds. Assert it once
+          .venv/bin/python -c 'import charter_cli, charter_core; from charter_core.schema_export import SCHEMAS; print("installed", charter_core.__version__, sorted(SCHEMAS))'
+      - name: Wheel metadata names the renamed dependency
+        run: |
+          python3 -c "
+          import glob, zipfile, sys
+          whl = glob.glob('dist/charter_kit_cli-*.whl')[0]
+          with zipfile.ZipFile(whl) as z:
+              meta = next(z.read(n).decode() for n in z.namelist() if n.endswith('METADATA'))
+          assert 'Requires-Dist: charter-kit-core' in meta, meta
+          assert 'Requires-Dist: charter-core' not in meta.replace('charter-kit-core', '')
+          print('Requires-Dist verified')
+          "
+          # The 'charter' console script is declared but not yet runnable: its
+          # entry point is charter_cli.main:app, which S4 adds. Assert it once
           # that lands rather than pinning a gap the plan already accounts for.
