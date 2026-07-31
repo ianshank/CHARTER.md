@@ -8,6 +8,18 @@ milestone rather than a version number.
 
 ## [Unreleased]
 
+### Added — branching model and governance docs
+- Created `dev` and `qa` branches alongside `main`, under a GitFlow-lite
+  model (`feature|fix|claude/*` → `dev` → `qa` → `main`).
+- Added `CONTRIBUTING.md` (branching flow, commit convention, PR checklist),
+  `BRANCHING.md` (exact required-checks and branch-protection settings per
+  branch — to be applied by hand in GitHub's Settings UI, since no
+  available tool can configure them automatically), `CODEOWNERS`,
+  `SECURITY.md`, `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1), and
+  `GOVERNANCE.md`.
+- `.github/workflows/ci.yml`'s `push` trigger now includes `dev` and `qa`
+  alongside `main`.
+
 ### Added — repository hygiene
 - Enforced coverage floor (95%) in `pyproject.toml`'s `[tool.coverage.report]`
   rather than only in the CI workflow YAML, so `make cov` and CI can never
